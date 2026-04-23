@@ -1,0 +1,58 @@
+---
+description: 事务管理规则 - 仅适用于 Executor 层
+globs: "*/src/main/java/**/executor/**/*.java"
+alwaysApply: false
+---
+
+# Transaction Rules
+
+## 基本规则
+- `@Transactional` 只能放在 Executor 层，必须显式声明 `rollbackFor = Exception.class`。
+- catch 到异常后必须继续抛出，禁止吞异常导致事务不回滚。
+
+## 事务管理器命名
+格式：`transactionManager-{connName}`，常用实例：
+- 主库：`transactionManager-db-mysql-auto-choose`
+- 分片库：`transactionManager-db-sharding`
+- SQL Server：`transactionManager-db-sqlserver-write`
+
+注解式事务示例：
+```java
+@Transactional(value = "transactionManager-db-sharding", rollbackFor = Exception.class)
+public Result<Long> execute(XxxCmd cmd) { ... }
+```
+
+## 异常处理模式（双层 catch）
+业务异常原样抛出，系统异常记录日志后转换为 `BusinessException`：
+```java
+try {
+    // 业务逻辑
+} catch (BusinessException e) {
+    log.warn("业务失败, id={}, reason={}", id, e.getMessage());
+    throw e;
+} catch (Exception e) {
+    log.error("系统异常, id={}", id, e);
+    throw new BusinessException("处理失败: " + e.getMessage());
+}
+```
+
+## 编程式事务
+需要 `REQUIRES_NEW` 时使用，必须补全 commit、rollback、异常抛出：
+```java
+@Resource(name = "transactionManager-db-sharding")
+private PlatformTransactionManager transactionManager;
+
+DefaultTransactionDefinition def = new DefaultTransactionDefinition();
+def.setPropagationBehavior(DefaultTransactionDefinition.PROPAGATION_REQUIRES_NEW);
+TransactionStatus status = transactionManager.getTransaction(def);
+try {
+    // 业务逻辑
+    transactionManager.commit(status);
+} catch (Exception e) {
+    transactionManager.rollback(status);
+    throw e;
+}
+```
+
+## 事务调试
+排查事务问题时可使用 `TransactionDebugUtil.printTransactionStatus()` 确认当前事务状态。

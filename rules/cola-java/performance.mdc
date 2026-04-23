@@ -1,0 +1,13 @@
+---
+description: cola-java 项目性能约束（补充 shared/performance.mdc 的项目特有细节）
+globs: "*/src/main/java/**/*.java"
+alwaysApply: false
+---
+
+# Performance（cola-java）
+
+- 禁止 N+1 查询：循环内不能有数据库调用，需先批量查询再内存处理。
+- 禁止循环单条写入：批量操作必须用 `bulkInsert` / `bulkUpsert`（Gateway 继承 `ServiceRepository` 自带），禁止循环调用 `save`。
+- 大数据量必须分页：`pageSize` 建议 200–500，禁止一次性 `list()` 全表。
+- 大数据量异步分批：使用 `AsyncUtils.doPartitionAsync`，每批建议 100–200 条。
+- 设计方案时需说明数据量级、分页策略、批处理方式和失败补偿，避免默认实现在线上放大性能风险。

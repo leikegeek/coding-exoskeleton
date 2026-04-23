@@ -1,0 +1,28 @@
+---
+description: COLA 分层架构规则、职责边界和禁止模式
+globs: "*/src/main/java/**/*.java"
+alwaysApply: false
+---
+
+# COLA Architecture
+
+## 分层结构（严格单向依赖）
+
+```
+adapter → application → infrastructure / client
+```
+
+- `adapter`：只放 Controller、Consumer、Scheduler，零业务逻辑，只做参数接收、校验、路由转发与结果返回。
+- `application`：Executor / Service，业务逻辑编排与用例执行，`@Transactional` 只能在此层（具体见 `transaction-executor.mdc`）。
+- `infrastructure`：Gateway（接口 + 实现）、Repository（MyBatis Mapper）、DataObject、Convertor、ES/MongoDB 等技术实现。多数据源通过 `@DS` 注解指定。
+- `client`：DTO、Command、Query 等 API 契约定义，继承 COLA 基类（`Command`、`PageQuery`、`DTO`）。
+
+本项目采用简化版 COLA，无独立 `domain` 模块，领域逻辑在 `application` 层的 Executor 中承载。
+
+## 禁止项
+
+- `adapter` 禁止直接 import `infrastructure` 包中的类，必须通过 `application` 层中转。
+- Controller 中禁止出现 if-else 业务分支、复杂循环处理或持久化逻辑。
+- `@Transactional` 禁止出现在 Controller 或 infrastructure 层，只能在 Executor 层。
+- 业务异常统一使用 `BusinessException`（位于 `application/common/config/exception/`），禁止裸抛 `RuntimeException`。
+- AccessKey、SecretKey、密码等敏感配置必须走 Nacos 配置中心管理，日志中禁止输出 token、apiKey、密码等敏感信息。

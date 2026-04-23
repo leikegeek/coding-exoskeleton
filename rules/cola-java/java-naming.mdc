@@ -1,0 +1,30 @@
+---
+description: Java 后端命名规范
+globs: "*/src/main/java/**/*.java"
+alwaysApply: false
+---
+
+# Java Naming
+
+## Executor / Service（application 层）
+- 查询执行器命名为 `XxxQryExe`，放在 `executor/模块名/qry/` 下。
+- 命令执行器命名为 `XxxCmdExe`，放在 `executor/模块名/cmd/` 下。
+- 服务编排命名为 `XxxService`，放在 `service/模块名/` 下。
+
+## Gateway / Repository / DataObject（infrastructure 层）
+- Gateway 接口命名为 `IXxxGateway`，实现类命名为 `XxxGateway`，均在 `infrastructure` 层。
+- MyBatis Mapper 接口命名为 `IXxxRepository`，放在 `repository/模块名/` 下。
+- 数据库实体命名为 `XxxDO`，放在 `dataobject/模块名/` 下。
+- MapStruct 转换器命名为 `XxxConvertor`。
+
+## Controller（adapter 层）
+- 对外 API Controller 使用 `XxxApiController`（URL 路径 `/api/`）。
+- 前端页面 Controller 使用 `XxxController`（URL 路径 `/web/`）。
+- 内部服务入口使用 `XxxCenterController`（URL 路径 `/center/`）。
+
+## 其他（adapter 层）
+- MQ 消费者命名为 `XxxConsumer`，放在 `consumer/模块名/` 下。
+- 定时任务命名为 `XxxScheduler`，放在 `scheduler/模块名/` 下。
+
+## 通用
+- 新增类名先匹配现有职责和目录，再决定后缀，避免出现 `Manager`、`Helper`、`UtilService` 这类模糊命名。

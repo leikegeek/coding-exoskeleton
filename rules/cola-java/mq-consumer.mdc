@@ -1,0 +1,27 @@
+---
+description: RabbitMQ 消费者规则
+globs: "*/src/main/java/**/consumer/**/*.java"
+alwaysApply: false
+---
+
+# MQ Consumer
+
+## 必须遵守的规则
+- 必须继承 `RabbitBaseHandler`，不得自行处理 ACK/NACK 细节。
+- 消费前必须做幂等校验，优先使用 Redis 或数据库唯一约束判断是否已处理。
+- 消费失败必须抛出异常，禁止 catch 后静默忽略，否则消息 ACK 但未实际处理。
+- 重试最多 3 次，超过后路由到死信队列，死信队列需配置监控告警。
+- 监听方法保持轻薄，解析消息后转交明确的处理方法或应用层能力，不在监听器内堆叠复杂业务逻辑。
+
+## 标准实现模板
+```java
+@Component
+public class XxxConsumer extends RabbitBaseHandler {
+
+    @RabbitListener(queues = "queue_name", concurrency = "1")
+    public void listener(Message message, Channel channel) {
+        super.onMessage(message, channel, XxxDTO.class,
+                mqModel -> processMessage(mqModel));
+    }
+}
+```
