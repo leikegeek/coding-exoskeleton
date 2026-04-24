@@ -1,7 +1,7 @@
 {
   "name": "coding-exoskeleton",
   "displayName": "Exoskeleton - AI 编程治理框架",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "面向企业级项目的 AI 编程治理框架。双流水线工作流（需求→技术方案→编码→交付），三层治理模型（Skills + Rules + Hooks），需求编号全链路追溯。",
   "publisher": "lake",
   "keywords": [
