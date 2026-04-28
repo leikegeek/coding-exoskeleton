@@ -19,6 +19,14 @@ alwaysApply: true
 - **不重构未被破坏的代码**。如果发现了不相关的坏味道或死代码，在变更记录中备注提醒，但不在本次修改。
 - **匹配现有风格**。即使你倾向于不同的写法，也以项目现有代码风格为准。
 
+### 作者注释边界
+
+- 作者等个人信息只从全局用户配置 `~/.cursor/coding-exoskeleton/user-config.json` 或 `git config --global user.name` 读取，不得写入或读取项目共享文档中的个人字段。
+- 仅当项目已有风格或技术栈规则要求作者注释时，才在**新增**顶层文件/类中生成作者注释。
+- 修改已有文件时，不新增、不改写、不排序已有 `@author` 或作者注释，避免污染历史文件。
+- commit message 默认不追加作者说明；Git commit 自身的 author 元数据作为作者来源。仅当全局配置显式开启 `commitTrailer` 且团队规范要求时，才追加作者 trailer。
+- 禁止将 `user-config.json`、作者名、邮箱等个人配置写入 `AGENTS.md`、`.cursor/harness-config.json`、技术方案或交付文档。
+
 ### 清理边界
 
 - **必须清理**：你本次变更导致的孤立引用（未使用的 import、变量、方法）。

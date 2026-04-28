@@ -1,4 +1,4 @@
----
+﻿---
 name: project-profiling
 displayName: 项目画像生成
 description: 扫描项目文件和目录结构，推断技术栈和架构模式，通过交互确认生成项目画像文件（AGENTS.md）。适用于项目初始化阶段。
@@ -114,6 +114,8 @@ version: '1.0.2'
 
 扫描完成后，按以下顺序确认或补充信息：
 
+如果 `/init` 预检发现业务项目已存在 `AGENTS.md`，个人本地配置仍必须单独检查；项目画像的“跳过/增量/覆盖”不应隐式跳过 `~/.cursor/coding-exoskeleton/user-config.json` 的配置入口。
+
 ### 必确认项
 
 1. **项目名称**：从 README 或构建文件提取，请用户确认
@@ -132,6 +134,21 @@ version: '1.0.2'
 8. **需求编号正则**：用于自动识别需求编号，默认 `SV-\d+`；JIRA 项目可设为 `[A-Z]+-\d+`，GitHub 可设为 `#\d+`
 9. **编码规范偏好**：如有团队特殊约定
 10. **部署方式**：如有特殊说明
+
+### 个人本地配置项（不写入 AGENTS.md）
+
+以下信息属于开发者个人配置，只能写入 `~/.cursor/coding-exoskeleton/user-config.json`，不得写入业务项目或 `AGENTS.md`：
+
+11. **作者显示名**：用于新建代码文件作者注释（如 Java `@author`）
+12. **作者邮箱**：默认读取 `git config --global user.email`
+13. **commit trailer 开关**：默认 `false`；仅当团队要求在 commit message 追加作者说明时开启
+
+若用户未填写作者显示名，默认读取 `git config --global user.name`；仍为空则跳过作者注释生成。
+
+触发规则：
+- 已有 `AGENTS.md` 且用户选择“仅配置个人作者信息”时，只执行本节，不扫描或改写项目画像。
+- 已有 `AGENTS.md` 且用户选择“增量更新”时，仍执行本节的配置检查。
+- 用户明确选择“跳过”时不写任何文件，但需要提示后续可通过 `/init` 的“仅配置个人作者信息”进入本节。
 
 ## AGENTS.md 模板
 
@@ -187,4 +204,12 @@ project-root/
 
 - `AGENTS.md`：保存到业务项目根目录
 - `.cursor/harness-config.json` 中的 `techStack` 字段更新
+- `~/.cursor/coding-exoskeleton/user-config.json`：可选的全局个人配置（作者名、邮箱等），不进入业务仓库
+
+## 个人配置隔离规则
+
+- `AGENTS.md` 只记录项目共享画像，不记录开发者个人作者名、邮箱或签名偏好。
+- `.cursor/harness-config.json` 只记录项目级 harness 配置，不记录个人作者信息。
+- 全局个人配置路径固定为 `~/.cursor/coding-exoskeleton/user-config.json`，位于业务项目之外，天然不会被 git 提交。
+- 后续编码阶段若需要生成 `@author`，只能读取全局个人配置或 git 全局配置，不得从项目文档推断。
 

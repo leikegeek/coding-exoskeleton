@@ -23,9 +23,11 @@
 
 检查 `docs/delivery/` 目录下是否已存在当前需求的交付文档：
 
-1. **如果变更清单和技术参考文档都存在**：读取 `delivery` skill，执行格式化校验和 diff 对账，补齐遗漏
+1. **如果三类正式交付文档都存在**：读取 `delivery` skill，执行格式化校验和 diff 对账，补齐遗漏
 2. **如果部分存在**：保留已有文档，仅补充生成缺失的部分
 3. **如果都不存在**：进入完整的补救生成模式（见下方）
+
+三类正式交付文档为：`changelist.md`、`tech-ref.md`、`review-report.md`。`docs/delivery/.state/SV-xxxxx-verification.json` 是 `/code` B3 的机器状态文件，不作为 `/deliver` 的正式交付物。补救模式下若无法完整还原验证过程，必须在 `review-report.md` 的验证摘要中标注“补救生成，未实际执行/需人工复核”，不得伪造已执行的验证结果。
 
 ### 第二步：补救生成（仅当文档不存在时）
 
@@ -54,6 +56,13 @@
 
 保存到 `docs/delivery/SV-xxxxx-tech-ref.md`
 
+**生成补救评审报告**：
+
+1. 基于 `git diff main...HEAD`、变更清单和技术方案文档执行一次补救对齐检查
+2. 保存补救代码评审报告到 `docs/delivery/SV-xxxxx-review-report.md`
+3. 在 `review-report.md` 中写入验证摘要；对未实际执行的构建、测试、性能、规范、安全检查，必须标记为“未验证/需人工执行”，不得写成 PASS
+4. `/deliver` 不生成旧版 Markdown 验证文档；如后续需要断点续验，应回到 `/code` B3 生成或恢复机器状态文件 `docs/delivery/.state/SV-xxxxx-verification.json`
+
 ### 第三步：展示交付物并让用户选择
 
 展示所有交付物的摘要，然后询问：
@@ -62,7 +71,7 @@
 >
 > - 变更清单：`docs/delivery/SV-xxxxx-changelist.md`
 > - 技术参考文档：`docs/delivery/SV-xxxxx-tech-ref.md`
-> - 代码评审报告：`docs/delivery/SV-xxxxx-review-report.md`（如存在）
+> - 代码评审报告：`docs/delivery/SV-xxxxx-review-report.md`
 > - 代码：feature/SV-xxxxx-... 分支
 >
 > 请选择：

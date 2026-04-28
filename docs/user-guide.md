@@ -1,4 +1,4 @@
-# Exoskeleton 用户手册（操作版）
+﻿# Exoskeleton 用户手册（操作版）
 
 本手册只保留操作步骤、核心流程图和跳转入口。机制解释、治理原理和设计细节统一以 `docs/plugin-core-workflow.md` 为准。
 
@@ -26,7 +26,7 @@
 
 ```powershell
 # 作用：克隆插件仓库到本地
-git clone https://github.com/leikegeek/coding-exoskeleton.git
+git clone https://github.com/leikegeek/coding-exoskeleton
 
 # 作用：进入插件仓库根目录，后续安装/验证命令都在这里执行
 cd .\coding-exoskeleton
@@ -72,7 +72,7 @@ git pull --ff-only
 命令与作用：
 
 ```text
-# 作用：从需求启动完整流程（需求 -> 方案 -> 编码 -> 交付）
+# 作用：从需求走流水线 A（需求→方案→自评/审查），方案须经用户硬门禁确认；选「继续」后再进入编码/交付
 /start SV-34577 需求描述或需求文档
 
 # 作用：从已有技术方案直接进入编码与交付流程
@@ -89,6 +89,16 @@ git pull --ff-only
 ```
 
 首次在项目中使用会自动引导安装 Hooks 与生成 `AGENTS.md`。
+
+`/init` 也会可选引导配置个人作者信息，用于新建代码文件的作者注释（如 Java `@author`）。该配置保存到用户目录：
+
+```text
+~/.cursor/coding-exoskeleton/user-config.json
+```
+
+该文件不在业务项目目录内，不会进入代码仓库；作者信息也不会写入 `AGENTS.md` 或 `.cursor/harness-config.json`。
+
+如果业务项目已经存在 `AGENTS.md`，`/init` 会额外提供「仅配置个人作者信息」选项；选择该项只检查/生成全局 `user-config.json`，不会改写项目画像或项目配置。选择「跳过」则不会配置作者信息。
 
 已有业务仓库（可选）：
 
@@ -116,22 +126,23 @@ flowchart TD
     end
 
     subgraph pipelineA [流水线 A: 需求到技术方案]
-        A_Intake["需求录入 + 解析"]
-        A_Design["技术方案设计 + 自评审 + 架构审查"]
-        A_Compact["上下文压缩评估"]
+        A_Intake["需求录入 + 完整性门禁"]
+        A_Design["A2: 技术方案(4核心+代码位置) + 自评 + 可选架构审查"]
+        A_Gate{"用户确认方案 硬门禁"}
+        A_Compact["上下文压缩评估 (接继续/断开)"]
         A_Choice{"继续编码 or 断开?"}
     end
 
     subgraph pipelineB [流水线 B: 技术方案到交付]
-        B_Understand["理解技术方案 + 确认疑问 + 检查实施进度"]
-        B_Prepare["创建分支 + 拆解任务 + 初始化进度"]
-        B_Code["TDD 编码 + 增量记录变更 + TDD 纪律检查"]
-        B_Verify["验证循环: 构建→测试→性能→对齐→规范"]
-        B_Deliver["文档完整性检查 + 展示交付物"]
+        B_Understand["B0: 理解方案 + 确认疑问 (独立 /code)"]
+        B_Prepare["B1: 分支 + 任务 + 派方案"]
+        B_Code["B2: 编码+Record门禁(编排:子代理组间默认串行)"]
+        B_Verify["B3: 验证V1~V5 + 安全审计 + 三份交付文档"]
+        B_Deliver["B4: doc-updater门禁 + 展示"]
     end
 
     subgraph standalone [独立命令]
-        DELIVER_FIX["从 git diff 补救生成文档"]
+        DELIVER_FIX["从 git diff 补救生成三份交付文档"]
         REPORT_GEN["生成审计统计报告"]
     end
 
@@ -146,13 +157,17 @@ flowchart TD
     PC_Agents -->|"否"| PC_Init --> PC_Ready
     PC_Agents -->|"是"| PC_Ready
 
-    PC_Ready -->|"/start"| A_Intake --> A_Design --> A_Compact --> A_Choice
+    PC_Ready -->|"/start"| A_Intake --> A_Design --> A_Gate
+    A_Gate -->|需修改/澄清| A_Design
+    A_Gate -->|确认通过| A_Compact --> A_Choice
     A_Choice -->|"继续"| B_Prepare
     A_Choice -->|"断开"| OUT_A["保存技术方案文档"]
 
     PC_Ready -->|"/code"| B_Understand --> B_Prepare
     B_Prepare --> B_Code --> B_Verify --> B_Deliver
 ```
+
+> **读图要点**：需求进入 A2 前先过完整性门禁；默认技术方案只保留 4 个核心部分，并必须写清代码实施位置；只有用户明确要求架构设计方案时才使用 8 部分架构模板。A2 自评/审查后**必须先**经用户确认硬门禁；B2 每个任务/子代理组都有 Record 门禁；B3 为 V1~V5 验证循环 **PASS 后**再做安全审计，验证过程写入机器状态，最终只交付三份正式文档（详见 `docs/plugin-core-workflow.md`）。
 
 ## 命令速查
 
@@ -172,6 +187,12 @@ flowchart TD
 | 结构化验证循环 | 五维度门禁（构建/测试/性能/对齐/规范），增量重验 | B3 审查阶段，由 `verification-loop` skill 编排 |
 | 专职子代理 | 架构审查、TDD 检查、构建修复、安全审计、文档检查 | A2（architect）、B2（tdd-guide）、B3（build-error-resolver / security-reviewer）、B4（doc-updater） |
 | 实施进度追踪 | 技术方案文档中自动维护进度段落，支持跨会话续做 | B1 初始化、B2 每个任务完成后更新、B3/B4 更新状态 |
+| 轻量技术方案 | 普通需求默认 4 段式；仅明确要求架构设计时使用 8 段架构模板 | A2 技术方案设计 |
+| 需求完整性门禁 | 内部检查完整需求信息，只向用户确认阻断性缺口 | A1 结束、进入 A2 前 |
+| Record 门禁 | 每个任务完成点必须维护变更清单和实施进度，缺失则不得进入下一任务或 B3 | B2 编码阶段 |
+| 子代理上下文收窄 | 子代理只接收任务、方案摘录、项目摘要和必要规则，避免传全文 | B2 编排模式 |
+| 机器状态验证记录 | V1~V5 过程状态写入 `docs/delivery/.state/SV-xxxxx-verification.json`，用于断点续验，不作为交付文档 | B3 验证循环 |
+| 三份交付文档门禁 | `changelist`、`tech-ref`、`review-report` 三类正式文档齐套后才可交付；验证摘要写入 `review-report` | B3 收口、B4 展示前 |
 
 ## 进阶与运维入口
 

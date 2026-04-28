@@ -28,3 +28,10 @@ alwaysApply: false
 
 ## 通用
 - 新增类名先匹配现有职责和目录，再决定后缀，避免出现 `Manager`、`Helper`、`UtilService` 这类模糊命名。
+
+## JavaDoc 作者注释
+
+- 若项目已有新类 JavaDoc 作者注释风格，新增顶层 Java 类时可以生成 `@author`。
+- 作者名只允许从全局用户配置 `~/.cursor/coding-exoskeleton/user-config.json` 的 `author.javaDocAuthor` / `author.name` 读取；缺失时可回退到 `git config --global user.name`。
+- 修改已有类时，不新增、不改写已有 `@author`。
+- 不得将作者配置写入项目仓库文件或共享项目画像。

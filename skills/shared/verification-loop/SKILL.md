@@ -37,10 +37,10 @@ version: '1.0.2'
 
 ### 第一步：初始化验证上下文
 
-1. 读取需求编号（SV-ID），确定验证检查点文件路径：`docs/delivery/SV-xxxxx-verification.md`
-2. 检查是否存在未完成的验证检查点（支持断点续验）：
-   - **存在且未完成**：读取检查点，从上次中断的位置继续
-   - **不存在**：创建新的验证检查点文件，初始化所有维度为"待验证"
+1. 读取需求编号（SV-ID），确定机器状态文件路径：`docs/delivery/.state/SV-xxxxx-verification.json`
+2. 检查是否存在未完成的验证状态（支持断点续验）：
+   - **存在且未完成**：读取 JSON 状态，从上次中断的位置继续
+   - **不存在**：创建新的 JSON 状态文件，初始化所有维度为"待验证"
 3. 记录当前迭代轮次（初始为第 1 轮）
 
 ### 第二步：执行验证维度
@@ -54,7 +54,7 @@ version: '1.0.2'
    - 构建成功（exit code 0）且无 ERROR 输出 → ✅
    - 构建成功但有警告 → ⚠️，记录警告内容
    - 构建失败 → ❌，记录错误信息
-3. 更新检查点
+3. 更新机器状态文件
 
 #### V2：测试验证
 
@@ -64,7 +64,7 @@ version: '1.0.2'
    - 全部通过 → ✅
    - 全部通过但覆盖率低于基线 → ⚠️，记录覆盖率数据
    - 有失败用例 → ❌，记录失败用例列表
-4. 更新检查点
+4. 更新机器状态文件
 
 #### V3：性能验证
 
@@ -74,7 +74,7 @@ version: '1.0.2'
    - 无性能问题 → ✅
    - 仅有 Warning 级建议 → ⚠️，记录建议列表
    - 存在 Critical 级问题（N+1、循环内 RPC 等） → ❌，记录问题详情
-4. 更新检查点
+4. 更新机器状态文件
 
 #### V4：对齐验证
 
@@ -88,7 +88,7 @@ version: '1.0.2'
    - 三方一致，无遗漏无偏差 → ✅
    - 存在 Warning 级不一致（如细节差异但不影响业务） → ⚠️
    - 存在 Critical 级偏差（业务功能遗漏、超范围变更、需求跑偏） → ❌
-5. 更新检查点
+5. 更新机器状态文件
 
 #### V5：规范验证
 
@@ -98,7 +98,7 @@ version: '1.0.2'
    - 无违规 → ✅
    - 仅 Warning 级违规 → ⚠️，记录违规项
    - ERROR 级违规 → ❌，记录违规详情
-4. 更新检查点
+4. 更新机器状态文件
 
 ### 第三步：迭代判定
 
@@ -132,79 +132,104 @@ FAIL 时的处理：
 2. 明确告知用户哪些维度未通过、已尝试的修复措施
 3. 建议人工介入的方向
 
-### 第五步：产出验证报告
+### 第五步：产出验证状态与正式交付摘要
 
 验证循环结束后（无论 PASS 还是 FAIL），产出以下内容：
 
-1. **验证检查点文件**（`docs/delivery/SV-xxxxx-verification.md`）：完整的验证过程记录
-2. **代码评审报告**（`docs/delivery/SV-xxxxx-review-report.md`）：整合各维度的检查结果
-3. **变更清单定稿**：对 B2 阶段积累的变更记录做最终校验和格式化
-4. **技术参考文档**（`docs/delivery/SV-xxxxx-tech-ref.md`）：从变更记录和审查结果中提炼
+1. **机器状态文件**（`docs/delivery/.state/SV-xxxxx-verification.json`）：保存 V1-V5 当前状态、迭代轮次、失败摘要、修复动作、日志引用和下一轮重验计划，供 Agent 断点续验使用。该文件**不是正式交付文档**，不进入 B4 交付展示。
+2. **代码评审报告**（`docs/delivery/SV-xxxxx-review-report.md`）：整合三方对齐结论、问题列表、V1-V5 最终验证摘要、安全审计结论和交付判定，作为人类阅读的质量结论文档。
+3. **变更清单定稿**：对 B2 阶段积累的变更记录做最终校验和格式化。
+4. **技术参考文档**（`docs/delivery/SV-xxxxx-tech-ref.md`）：从变更记录和审查结果中提炼。
 
-## 验证检查点格式
+正式交付文档必须保持摘要化：不复制完整命令输出、完整 diff 或完整测试日志；只记录结论、阻断问题、修复动作、剩余风险和必要的日志引用。机器状态文件保存结构化字段，不写叙述性长文。
 
-每完成一个维度的验证或每完成一轮迭代，更新检查点文件：
+## 交付文档齐套门禁
 
-````markdown
-# 验证检查点 SV-xxxxx
+当综合结果为 PASS 且安全审计可交付时，进入 B4 前必须确认以下三类**正式交付文档**全部存在且需求编号一致：
 
-## 基本信息
+| 交付物 | 路径 | 最低要求 |
+|--------|------|---------|
+| 变更清单 | `docs/delivery/SV-xxxxx-changelist.md` | 已与 `git diff main...HEAD` 对账，无遗漏文件 |
+| 技术参考文档 | `docs/delivery/SV-xxxxx-tech-ref.md` | 面向测试人员，包含接口、核心功能、数据流、配置和注意事项 |
+| 代码评审报告 | `docs/delivery/SV-xxxxx-review-report.md` | 包含 V4 对齐结论、V1-V5 验证摘要、安全审计结论、Critical 闭环状态和交付判定 |
 
-- **需求编号**：SV-xxxxx
-- **技术方案**：docs/design/SV-xxxxx-tech-design.md
-- **Feature 分支**：feature/SV-xxxxx-xxx
-- **验证开始时间**：YYYY-MM-DD HH:mm
-- **当前迭代轮次**：N / 3
-- **综合结果**：PASS / FAIL / BLOCKED / 进行中
+任一正式交付文档缺失或不满足最低要求时，综合结果不得视为可交付；必须补齐后重新执行对应维度或交付物检查。`docs/delivery/.state/SV-xxxxx-verification.json` 只作为机器状态使用，可用于排障和续验，但不作为交付物齐套条件展示给用户。
 
-## 维度状态总览
+## 机器状态文件格式
 
-| 维度 | 状态 | 最后验证时间 | 通过轮次 | 备注 |
-|------|------|-------------|---------|------|
-| V1 构建 | ✅ / ⚠️ / ❌ | YYYY-MM-DD HH:mm | 第N轮 | - |
-| V2 测试 | ✅ / ⚠️ / ❌ | YYYY-MM-DD HH:mm | 第N轮 | - |
-| V3 性能 | ✅ / ⚠️ / ❌ | YYYY-MM-DD HH:mm | 第N轮 | - |
-| V4 对齐 | ✅ / ⚠️ / ❌ | YYYY-MM-DD HH:mm | 第N轮 | - |
-| V5 规范 | ✅ / ⚠️ / ❌ | YYYY-MM-DD HH:mm | 第N轮 | - |
+每完成一个维度的验证或每完成一轮迭代，更新机器状态文件：
 
-## 迭代记录
+为控制 token 和文档体积，状态文件只记录结构化摘要信息，不粘贴大段原始日志。构建、测试、lint 等命令的完整输出应保留在终端、CI 或日志文件中，状态文件只写失败摘要、关键错误、修复动作和日志引用路径。
 
-### 第 1 轮
-
-#### V1 构建验证
-- **状态**：✅
-- **执行时间**：YYYY-MM-DD HH:mm
-- **结果摘要**：构建成功，无错误
-
-#### V2 测试验证
-- **状态**：❌
-- **执行时间**：YYYY-MM-DD HH:mm
-- **失败项**：
-  - `XxxServiceTest.testXxx` — 预期值与实际值不匹配
-- **修复动作**：（修复后在下一轮记录）
-
-（...其他维度...）
-
-### 第 2 轮（增量重验）
-
-#### V2 测试验证（重验）
-- **状态**：✅
-- **执行时间**：YYYY-MM-DD HH:mm
-- **结果摘要**：修复后全部通过
-
-（...仅包含重验的维度...）
-````
+```json
+{
+  "requirementId": "SV-xxxxx",
+  "techDesign": "docs/design/SV-xxxxx-tech-design.md",
+  "branch": "feature/SV-xxxxx-xxx",
+  "baseBranch": "main",
+  "status": "running",
+  "currentIteration": 1,
+  "maxIterations": 3,
+  "dimensions": {
+    "V1_BUILD": {
+      "status": "pending",
+      "lastRunAt": null,
+      "passedIteration": null,
+      "summary": "",
+      "logRef": ""
+    },
+    "V2_TEST": {
+      "status": "pending",
+      "lastRunAt": null,
+      "passedIteration": null,
+      "summary": "",
+      "failedItems": [],
+      "logRef": ""
+    },
+    "V3_PERFORMANCE": {
+      "status": "pending",
+      "lastRunAt": null,
+      "passedIteration": null,
+      "summary": "",
+      "criticalItems": [],
+      "warningItems": [],
+      "logRef": ""
+    },
+    "V4_ALIGNMENT": {
+      "status": "pending",
+      "lastRunAt": null,
+      "passedIteration": null,
+      "summary": "",
+      "criticalItems": [],
+      "warningItems": [],
+      "logRef": ""
+    },
+    "V5_STANDARD": {
+      "status": "pending",
+      "lastRunAt": null,
+      "passedIteration": null,
+      "summary": "",
+      "criticalItems": [],
+      "warningItems": [],
+      "logRef": ""
+    }
+  },
+  "rerunPlan": [],
+  "fixHistory": [],
+  "finalSummaryWrittenTo": "docs/delivery/SV-xxxxx-review-report.md"
+}
+```
 
 ## 断点续验
 
 验证循环支持中途中断后恢复：
 
-1. 每完成一个维度即更新检查点文件并保存
+1. 每完成一个维度即更新机器状态文件并保存
 2. 如果会话中断（用户关闭、上下文耗尽等），下次执行 B3 时：
-   - 检测到已有检查点文件
+   - 检测到已有机器状态文件
    - 读取已完成的维度状态，跳过已通过的维度
    - 从未完成的维度继续执行
-3. 如果用户希望全部重验，可以删除检查点文件后重新执行
+3. 如果用户希望全部重验，可以删除机器状态文件后重新执行
 
 ## 与现有组件的协作关系
 
@@ -220,7 +245,7 @@ verification-loop（编排层）
 
 - 本 Skill 负责**流程编排、状态管理、迭代控制、门禁评判**
 - 各维度的**具体检查逻辑**由对应的 Skill / Agent / 工具负责
-- 验证结果统一收集到检查点文件，供综合评判使用
+- 验证结果统一收集到机器状态文件，并将最终摘要写入 `review-report.md` 供人类阅读
 
 ## 配置项
 

@@ -50,6 +50,7 @@ version: '1.0.2'
 - 避免使用模糊命名：Manager、Helper、UtilService
 - 方法命名使用动词开头：findXxx、createXxx、updateXxx、deleteXxx
 - 布尔方法使用 isXxx、hasXxx、canXxx
+- 新增顶层 Java 类如需 `@author`，只读取全局用户配置 `~/.cursor/coding-exoskeleton/user-config.json`；修改已有类时不新增或改写作者注释
 
 ## 使用方式
 在编码阶段，当需要创建新类时，参照以上规则确定命名。如果现有项目中有偏差（已有类名不符合规范），以项目已有风格为准，保持一致性。

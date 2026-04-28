@@ -122,10 +122,11 @@ $svIdPattern = "SV-\d+"
 $svMatch = [regex]::Match($prompt, $svIdPattern)
 if ($svMatch.Success) {
     $svId = $svMatch.Value
-    $projectRoot = (Get-Location).Path
+    $projectRoot = $script:ProjectRoot
+    $artifactGatePattern = "(?i)(/deliver|deliver|delivery|submit\s+pr|create\s+pr|pull\s+request|B4|交付|提交\s*PR|创建\s*PR)"
+    $isArtifactGateIntent = ($prompt -match $artifactGatePattern)
     $artifactChecks = @(
         @{ path = "docs\delivery\$svId-changelist.md"; label = "changelist" },
-        @{ path = "docs\delivery\$svId-verification.md"; label = "verification" },
         @{ path = "docs\delivery\$svId-review-report.md"; label = "review-report" },
         @{ path = "docs\delivery\$svId-tech-ref.md"; label = "tech-ref" }
     )
@@ -140,8 +141,12 @@ if ($svMatch.Success) {
 
     if ($missingArtifacts.Count -gt 0) {
         $artifactList = $missingArtifacts -join ", "
+        $artifactOutcome = if ($isArtifactGateIntent) { "ask" } else { "allow" }
         Write-HarnessEvent -EventType "artifact_check" -HookName "beforeSubmitPrompt" `
-            -Detail "missing artifacts for ${svId}: $artifactList" -Outcome "allow"
+            -Detail "missing artifacts for ${svId}: $artifactList" -Outcome $artifactOutcome
+        if ($isArtifactGateIntent) {
+            Ask-Hook -Message "Artifact gate: missing delivery artifacts for ${svId}: $artifactList. Complete B3/B4 document generation before delivery or PR."
+        }
     } else {
         Write-HarnessEvent -EventType "artifact_check" -HookName "beforeSubmitPrompt" `
             -Detail "all artifacts present for $svId" -Outcome "allow"

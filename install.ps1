@@ -13,18 +13,18 @@
     Git repository URL (HTTP/HTTPS/SSH).
 
 .PARAMETER Branch
-    Branch to install from. Default: master.
+    Branch to install from. Default: main.
 
 .EXAMPLE
     .\install.ps1
 
 .EXAMPLE
-    .\install.ps1 -RepoUrl "https://github.com/leikegeek/coding-exoskeleton.git" -Branch "master"
+    .\install.ps1 -RepoUrl "https://github.com/leikegeek/coding-exoskeleton" -Branch "main"
 #>
 [CmdletBinding()]
 param(
-    [string]$RepoUrl = "https://github.com/leikegeek/coding-exoskeleton.git",
-    [string]$Branch  = "master"
+    [string]$RepoUrl = "https://github.com/leikegeek/coding-exoskeleton",
+    [string]$Branch  = "main"
 )
 
 $ErrorActionPreference = "Stop"
