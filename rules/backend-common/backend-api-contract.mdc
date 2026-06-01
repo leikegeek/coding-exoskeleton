@@ -1,0 +1,16 @@
+---
+description: 后端 API 契约规则：接口边界、DTO、错误语义、权限、幂等和兼容性
+globs:
+  - "**/src/main/**/*.{java,kt,go,py,ts,js}"
+  - "**/{controller,api,service,application,domain,infrastructure,routes,handlers}/**/*.{java,kt,go,py,ts,js}"
+alwaysApply: false
+---
+
+# Backend API Contract
+
+- 仅当 `AGENTS.md` 的 `techStack` 属于后端 profile（当前内置：`cola-java`）时使用本规则；其它项目跳过。
+- 接口变更必须明确请求、响应、错误语义、鉴权/权限、幂等和兼容性影响。
+- DTO、领域对象、持久化对象和页面展示模型之间应有清晰转换边界，不把内部实现细节直接暴露给调用方。
+- 写接口必须考虑重复提交、并发更新、唯一约束和部分失败；批量接口必须声明规模上限和失败语义。
+- 破坏性字段变更、枚举变更、错误码变更必须给出迁移、灰度或回滚方案。
+- 日志和错误响应不得泄漏 token、密钥、密码、身份证件、客户隐私或内部连接信息。

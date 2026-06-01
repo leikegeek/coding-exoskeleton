@@ -1,6 +1,23 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+function Write-FallbackHookResponse {
+    param(
+        [Parameter(Mandatory)][ValidateSet("allow", "ask", "deny")][string]$Decision,
+        [Parameter(Mandatory)][string]$Message
+    )
+    $resp = [ordered]@{
+        permission    = $Decision
+        decision      = $Decision
+        "continue"    = ($Decision -eq "allow")
+        user_message  = $Message
+        userMessage   = $Message
+        agent_message = $Message
+        agentMessage  = $Message
+    }
+    [Console]::Out.WriteLine(($resp | ConvertTo-Json -Depth 5 -Compress))
+}
+
 try {
 
 . "$PSScriptRoot\common.ps1"
@@ -109,6 +126,6 @@ if ($isDesignMode) {
 Allow-Hook -Message "beforeShellExecution passed"
 
 } catch {
-    '{"permission":"ask","decision":"ask","user_message":"beforeShellExecution failed unexpectedly; please confirm command manually","agent_message":"beforeShellExecution failed unexpectedly; please confirm command manually"}'
+    Write-FallbackHookResponse -Decision "ask" -Message "beforeShellExecution failed unexpectedly; please confirm command manually"
     exit 0
 }

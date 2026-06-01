@@ -1,0 +1,14 @@
+---
+description: Vue 3 弹窗与表单规则：独立 Dialog、本地表单状态、封装组件优先
+globs: "**/*.vue"
+alwaysApply: false
+---
+
+# Vue 3 Dialog And Form
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-vue3` 时使用本规则；其它项目跳过。
+- 新增弹窗默认拆成独立 `*Dialog.vue`，与业务页面同域放置；一个弹窗只承载一个明确业务场景。
+- 父组件只控制显隐、传入初始化数据、接收结果事件；弹窗内部维护本地 `formData`、执行校验和保存。
+- 弹窗显隐统一使用 `modelValue` + `update:modelValue`，保存成功通过 `saved` 一次性回传结果。
+- 禁止把字段级编辑持续 emit 给父组件；字段编辑应先落在子组件本地表单状态。
+- 表单、输入、选择、日期、人员、导入等能力优先使用项目既有 Sh* 封装组件，避免并行搭建重复交互。

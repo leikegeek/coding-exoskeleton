@@ -6,6 +6,8 @@ alwaysApply: false
 
 # Transaction Rules
 
+- 仅当 `AGENTS.md` 的 `techStack` 为 `cola-java` 时使用本规则；其它项目跳过。
+
 ## 基本规则
 - `@Transactional` 只能放在 Executor 层，必须显式声明 `rollbackFor = Exception.class`。
 - catch 到异常后必须继续抛出，禁止吞异常导致事务不回滚。

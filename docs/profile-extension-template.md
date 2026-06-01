@@ -1,13 +1,14 @@
 # Exoskeleton 技术栈 Profile 扩展模板
 
-用于新增非 `cola-java` 的技术栈治理包（skills + rules + init 识别逻辑）。
+用于新增当前未内置的技术栈治理包（skills + rules + init 识别逻辑）。已内置 Profile 包括 `cola-java`、`frontend-vue3`、`frontend-react-umi`；已内置 family-common 层包括 `backend-common`、`frontend-common`。
 
 ## 1. 新增范围
 
-以 `{profile-id}` 为例（如 `spring-boot`、`react-ts`）：
+以 `{profile-id}` 为例（如 `spring-boot`、`nextjs`、`go-service`）：
 
 - `skills/{profile-id}/...`
 - `rules/{profile-id}/...`
+- 如该技术栈属于前端或后端，复用 `frontend-common` 或 `backend-common`，不要复制已有通用规则
 - `/init` 识别与映射逻辑
 - `docs/plugin-core-workflow.md` 的 Profile 表
 
@@ -38,6 +39,8 @@ rules/{profile-id}/
 - 必填 frontmatter：`description`
 - 优先使用 `globs` 限定作用范围
 - 非通用规则默认 `alwaysApply: false`
+- 规则正文第一条必须声明适用 `techStack`，不匹配时跳过
+- `globs` 只作为候选文件过滤；流水线 V5 仍只纳入 `rules/shared/*` + 当前 family-common 规则 + 当前 profile 规则
 - 禁止写死项目私有实现名；采用“项目约定优先 + 默认示例”表达
 
 ## 5. /init 扩展要求
@@ -63,6 +66,7 @@ techStack: {profile-id}
 
 - [ ] `/init` 可识别并写入 `{profile-id}`
 - [ ] 对应 skills 仅在匹配技术栈时执行
-- [ ] 对应 rules 仅在目标文件范围触发
+- [ ] 对应 rules 仅在目标文件范围触发，且正文包含 `techStack` 适配声明
+- [ ] 未重复实现 `backend-common` / `frontend-common` 已覆盖的通用能力
 - [ ] `/start`、`/code` 流程无回归
 - [ ] 审计日志可观测，`/report` 可看到关键指标

@@ -1,4 +1,4 @@
-﻿# /init — 项目初始化：生成项目画像与技术栈配置
+# /init — 项目初始化：生成项目画像与技术栈配置
 
 当用户输入 `/init` 时，扫描当前项目并生成项目画像文件（`AGENTS.md`）和技术栈配置。
 
@@ -51,7 +51,9 @@
 >
 > 可选的预设 Profile：
 > 1. **cola-java** — COLA 分层 + Maven + Java + JUnit 5（匹配当前项目）
-> 2. **自定义** — 手动描述技术栈，AI 生成定制画像
+> 2. **frontend-vue3** — Vue 3 + TypeScript + Vite 前端项目
+> 3. **frontend-react-umi** — React + Umi + DVA 前端项目
+> 4. **自定义** — 手动描述技术栈，AI 生成定制画像
 >
 > 请确认或选择其他 Profile。
 
@@ -59,10 +61,12 @@
 
 | Profile | 适用场景 | 对应的 Skills | 对应的 Rules |
 |---------|----------|---------------|-------------|
-| `cola-java` | COLA Java（基于 COLA 分层）项目 | `skills/cola-java/*` | `rules/cola-java/*` |
+| `cola-java` | COLA Java（基于 COLA 分层）项目 | `skills/backend-common/*` + `skills/cola-java/*` | `rules/backend-common/*` + `rules/cola-java/*` |
+| `frontend-vue3` | Vue 3 + TypeScript + Vite 前端项目 | `skills/frontend-common/*` + `skills/frontend-vue3/*` | `rules/frontend-common/*` + `rules/frontend-vue3/*` |
+| `frontend-react-umi` | React + Umi + DVA 前端项目 | `skills/frontend-common/*` + `skills/frontend-react-umi/*` | `rules/frontend-common/*` + `rules/frontend-react-umi/*` |
 | 自定义 | 其他技术栈或混合项目 | 仅 `skills/shared/*` | 仅 `rules/shared/*` |
 
-> **扩展说明**：`spring-boot`、`react-ts`、`go-service` 等 Profile 为规划中的扩展方向，当前版本尚未内置。欢迎按 `docs/profile-extension-template.md` 模板贡献新 Profile。
+> **扩展说明**：`spring-boot`、`react-ts`、`go-service` 等 Profile 可按 `docs/profile-extension-template.md` 模板继续扩展。
 
 ### 第三步：交互补充
 
@@ -127,7 +131,7 @@ $env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json
 
 ```json
 {
-  "techStack": "cola-java",
+  "techStack": "{selected-profile}",
   "pathWhitelist": ["..."]
 }
 ```
@@ -146,8 +150,8 @@ $env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json
 > ## 项目初始化完成
 >
 > - 项目画像：`AGENTS.md`（已保存到项目根目录）
-> - 技术栈：cola-java
-> - 激活的专项规范：`skills/cola-java/*` + `rules/cola-java/*`
+> - 技术栈：{selected-profile}
+> - 激活的专项规范：`skills/shared/*` + `rules/shared/*` + 当前 `techStack` 对应的 family-common 与 profile 资产
 > - 个人作者配置：`~/.cursor/coding-exoskeleton/user-config.json`（如已配置）
 >
 > 后续使用 `/start` 或 `/code` 时，AI 会自动读取项目画像作为上下文。
@@ -163,7 +167,7 @@ $env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json
 
 - `AGENTS.md` 保存在**业务项目根目录**（Cursor 生态约定），不在插件目录内
 - 作者等个人配置只保存在 `~/.cursor/coding-exoskeleton/user-config.json`，不得写入业务仓库、`AGENTS.md`、`.cursor/harness-config.json`、技术方案或交付文档
-- 技术栈 Profile 影响 AI 在后续流程中对 skills/rules 的引用优先级，但不影响 Cursor 的插件加载（所有 skills/rules 始终加载，Profile 决定哪些被主动使用）
+- 技术栈 Profile 影响 AI 在后续流程中对 skills/rules 的引用优先级，但不影响 Cursor 的插件注册（所有 skills/rules 会被注册，Profile 决定哪些被主动使用；V5 规范验证只纳入 `shared` + 当前 family-common + 当前 profile）
 - 增量更新模式下，已有内容保留，仅补充空缺字段
 - 扫描过程为只读，不修改任何项目文件（仅在第五、六步写入 `AGENTS.md` 和 `harness-config.json`；个人作者配置写入用户目录）
 

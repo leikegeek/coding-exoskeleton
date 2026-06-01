@@ -6,6 +6,8 @@ alwaysApply: false
 
 # COLA Architecture
 
+- 仅当 `AGENTS.md` 的 `techStack` 为 `cola-java` 时使用本规则；其它项目跳过。
+
 ## 分层结构（严格单向依赖）
 
 ```

@@ -1,0 +1,15 @@
+---
+description: React Umi UI 兼容规则：Ant Design 3/4 隔离、CSS Modules、IE11 与国际化
+globs:
+  - "src/{pages,layouts,components,componentsBusinessNew,componentsNew}/**/*.{js,jsx,ts,tsx,less}"
+alwaysApply: false
+---
+
+# React UI Compatibility
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-react-umi` 时使用本规则；其它项目跳过。
+- 默认沿用 Ant Design 3.x；`antd4` 只能通过已有隔离封装使用，并保留 scoped `prefixCls`，禁止在普通业务页直接混用。
+- 复杂列表、查询表单和弹窗优先复用项目已有扩展组件或同域模式，不重新造一套列表状态机。
+- 业务样式默认使用 Less + CSS Modules；少写全局样式，WindiCSS 只作为补充工具类。
+- 用户可见文案接入项目国际化方案；不要在业务组件中新增大段不可翻译硬编码文案。
+- 目标包含 IE11 时，新增语法、Web API、样式能力必须确认已有转译或 polyfill 支撑。

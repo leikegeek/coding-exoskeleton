@@ -1,0 +1,16 @@
+---
+description: 前端性能规则：约束重复请求、深监听、大对象响应式和大列表渲染风险
+globs:
+  - "src/{views,pages,components,stores,routes,services,models,layouts,hooks,utils,common}/**/*.{ts,tsx,js,jsx,vue}"
+  - "{components,pages,views}/**/*.{ts,tsx,js,jsx,vue}"
+alwaysApply: false
+---
+
+# Frontend Performance
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-vue3` 或 `frontend-react-umi` 时使用本规则；其它项目跳过。
+- 避免在热路径里重复请求、重复计算、深拷贝大对象或全量重放表格/树数据。
+- 新增深监听、复杂依赖监听、嵌套定时器、链式调度时，必须在代码或方案中说明必要性。
+- 大列表、大表格、复杂插槽和高频输入场景优先减少响应式粒度、缓存派生数据、去重请求和延迟加载非首屏内容。
+- 共享选项数据由父级或公共状态获取一次后下传，禁止兄弟组件重复拉取同一组选项。
+- 性能优化必须写清“证据 -> 方案 -> 验证方式”；没有证据时只给排查建议，不直接大改结构。

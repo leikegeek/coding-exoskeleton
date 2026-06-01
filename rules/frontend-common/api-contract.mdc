@@ -1,0 +1,16 @@
+---
+description: 前端 API 契约规则：统一请求栈、字段映射、空值与错误处理
+globs:
+  - "src/{views,pages,components,stores,routes,services,models,layouts,hooks,utils,common}/**/*.{ts,tsx,js,jsx,vue}"
+  - "{components,pages,views}/**/*.{ts,tsx,js,jsx,vue}"
+alwaysApply: false
+---
+
+# API Contract
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-vue3` 或 `frontend-react-umi` 时使用本规则；其它项目跳过。
+- 业务请求必须走项目已有请求封装；禁止在页面或组件中新增长期存在的裸 `fetch`、裸 `axios` 或硬编码远程域名。
+- 新接口优先放入项目既有 API/service 目录；页面内临时请求函数必须注明无法集中管理的原因和移除条件。
+- 接口接入时同步核对请求参数、响应字段、前端模型、展示字段和提交字段，不允许靠类型断言掩盖契约漂移。
+- `null`、`undefined`、空字符串、空数组的处理必须与相邻模块一致；列表展示、表单回填和提交前转换要使用同一套映射逻辑。
+- 导入、导出、下载、批量操作等高风险接口必须保留统一鉴权、loading、错误提示和取消/防重复提交策略。

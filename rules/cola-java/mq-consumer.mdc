@@ -6,6 +6,8 @@ alwaysApply: false
 
 # MQ Consumer
 
+- 仅当 `AGENTS.md` 的 `techStack` 为 `cola-java` 时使用本规则；其它项目跳过。
+
 ## 必须遵守的规则
 - 必须继承 `RabbitBaseHandler`，不得自行处理 ACK/NACK 细节。
 - 消费前必须做幂等校验，优先使用 Redis 或数据库唯一约束判断是否已处理。

@@ -1,0 +1,16 @@
+---
+description: 前端变更纪律：先理解调用链，最小改动，保留现有架构与交互契约
+globs:
+  - "src/{views,pages,components,stores,routes,services,models,layouts,hooks,utils,common}/**/*.{ts,tsx,js,jsx,vue}"
+  - "{components,pages,views}/**/*.{ts,tsx,js,jsx,vue}"
+alwaysApply: false
+---
+
+# Frontend Change Discipline
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-vue3` 或 `frontend-react-umi` 时使用本规则；其它项目跳过。
+- 在 `coding-discipline` 的最小变更原则之上，前端改动前必须补读入口、子组件、状态、API、公共工具和样式依赖。
+- 优先改现有文件和现有结构；不因局部需求引入新框架、新状态库或大范围重构。
+- 公共组件的 props、events、slots、v-model 协议属于外部契约，变更前必须核对调用点。
+- 新增交互必须覆盖加载态、空态、异常态、禁用态和权限态；不要只实现成功路径。
+- 列表、表格、弹窗、表单改动后必须给出回归点，至少覆盖正常路径、边界路径和异常路径。

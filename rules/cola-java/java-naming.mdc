@@ -6,6 +6,8 @@ alwaysApply: false
 
 # Java Naming
 
+- 仅当 `AGENTS.md` 的 `techStack` 为 `cola-java` 时使用本规则；其它项目跳过。
+
 ## Executor / Service（application 层）
 - 查询执行器命名为 `XxxQryExe`，放在 `executor/模块名/qry/` 下。
 - 命令执行器命名为 `XxxCmdExe`，放在 `executor/模块名/cmd/` 下。

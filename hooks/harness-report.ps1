@@ -122,9 +122,8 @@ $expectedAgents = @(
     @{ name = "architect";             stage = "A2" },
     @{ name = "tdd-guide";            stage = "B2" },
     @{ name = "build-error-resolver"; stage = "B3-V1" },
-    @{ name = "security-reviewer";    stage = "B3-V4" },
-    @{ name = "doc-updater";          stage = "B4" },
-    @{ name = "code-reviewer";        stage = "B3" }
+    @{ name = "audit-reviewer";       stage = "B3-V4" },
+    @{ name = "doc-updater";          stage = "B4" }
 )
 
 $agentEvents = @($events | Where-Object {

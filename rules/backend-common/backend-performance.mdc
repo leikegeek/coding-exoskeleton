@@ -1,0 +1,16 @@
+---
+description: 后端性能规则：数据库、远程调用、批处理、事务、缓存和异步任务风险
+globs:
+  - "**/src/main/**/*.{java,kt,go,py,ts,js}"
+  - "**/{service,application,domain,infrastructure,repository,gateway,consumer,scheduler,jobs}/**/*.{java,kt,go,py,ts,js}"
+alwaysApply: false
+---
+
+# Backend Performance
+
+- 仅当 `AGENTS.md` 的 `techStack` 属于后端 profile（当前内置：`cola-java`）时使用本规则；其它项目跳过。
+- 禁止在循环热路径中执行数据库查询/写入、RPC、HTTP、远程缓存调用；优先批量读取、批量写入或预取后内存处理。
+- 大数据处理必须有分页、分批、限流或异步策略；禁止无上限全量加载。
+- 长事务内避免远程调用、文件处理、大批量计算和不必要的锁持有。
+- 缓存必须说明 key、范围、过期、失效和穿透/击穿风险；不要为低频小数据引入高复杂度缓存。
+- 性能优化必须包含数据规模、证据、验证方式和回滚策略。

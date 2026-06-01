@@ -1,0 +1,16 @@
+---
+description: 后端变更纪律：分层边界、业务规则、数据一致性、可观测性和回滚
+globs:
+  - "**/src/main/**/*.{java,kt,go,py,ts,js}"
+  - "**/{controller,api,service,application,domain,infrastructure,repository,gateway,consumer,scheduler,jobs}/**/*.{java,kt,go,py,ts,js}"
+alwaysApply: false
+---
+
+# Backend Change Discipline
+
+- 仅当 `AGENTS.md` 的 `techStack` 属于后端 profile（当前内置：`cola-java`）时使用本规则；其它项目跳过。
+- 后端改动前必须沿调用链阅读入口、业务编排、数据访问、外部依赖、异常处理和测试。
+- 保持项目既有分层与依赖方向；不要让接口层直接承载复杂业务逻辑或绕过应用/服务层访问数据。
+- 涉及状态流转、金额、库存、权限、审计、数据隔离、幂等和一致性时，必须在方案或代码记录关键约束。
+- 新增定时任务、消息消费、批处理或迁移脚本时，必须说明重试、补偿、监控告警和回滚方式。
+- 不新增无依据的兜底分支、静默吞异常或宽泛 catch；异常处理应保留可诊断信息且不泄漏敏感数据。

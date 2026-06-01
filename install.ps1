@@ -19,11 +19,11 @@
     .\install.ps1
 
 .EXAMPLE
-    .\install.ps1 -RepoUrl "https://github.com/leikegeek/coding-exoskeleton" -Branch "main"
+    .\install.ps1 -RepoUrl "https://github.com/leikegeek/coding-exoskeleton.git" -Branch "main"
 #>
 [CmdletBinding()]
 param(
-    [string]$RepoUrl = "https://github.com/leikegeek/coding-exoskeleton",
+    [string]$RepoUrl = "https://github.com/leikegeek/coding-exoskeleton.git",
     [string]$Branch  = "main"
 )
 
@@ -135,13 +135,13 @@ $hooksObj = [ordered]@{
     version = 1
     hooks   = [ordered]@{
         afterFileEdit        = @(
-            [ordered]@{ command = "powershell -ExecutionPolicy Bypass -File `"$hooksRelBase/after-file-edit.ps1`""; timeout = 10 }
+            [ordered]@{ command = "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$hooksRelBase/after-file-edit.ps1`""; timeout = 10 }
         )
         beforeShellExecution = @(
-            [ordered]@{ command = "powershell -ExecutionPolicy Bypass -File `"$hooksRelBase/before-shell-execution.ps1`""; timeout = 10; failClosed = $true }
+            [ordered]@{ command = "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$hooksRelBase/before-shell-execution.ps1`""; timeout = 10; failClosed = $true }
         )
         beforeSubmitPrompt   = @(
-            [ordered]@{ command = "powershell -ExecutionPolicy Bypass -File `"$hooksRelBase/before-submit-prompt-lite.ps1`""; timeout = 10 }
+            [ordered]@{ command = "powershell -NoProfile -NonInteractive -ExecutionPolicy Bypass -File `"$hooksRelBase/before-submit-prompt-lite.ps1`""; timeout = 10 }
         )
     }
 }

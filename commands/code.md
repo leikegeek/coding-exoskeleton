@@ -178,49 +178,56 @@
 
 每个任务完成后必须通过 Record 门禁：变更记录已写入 `changelist.md`、实施进度已更新、测试结果已记录。未通过时不得开始下一个任务，也不得进入 B3。
 
-### B3: 代码审查与对齐
+### B3: 验证与统一审计
 
-读取 `verification-loop` skill，以结构化验证循环执行以下检查。
+读取 `verification-loop` skill，以结构化验证循环执行 V1-V5。`verification-loop` 负责确定性验证、状态管理和重验编排；智能审计统一由 `audit-reviewer` agent 完成。V5 规范验证只对照 `rules/shared/*`、当前 family-common 规则和当前 `AGENTS.md` 中 `techStack` 对应的 profile 规则；不得把其它技术栈规则纳入本项目判定。
 
 #### 3.1 全量测试
 
-运行全量单元测试。**门禁**：测试不通过，不允许继续。
+运行全量单元测试，并在测试命令执行后启动独立子代理，按 `agents/unit-test-reviewer.md` 的角色约束进行单元测试审视。审视输入必须包含需求文档或需求摘录、技术设计文档或设计摘录、本次生产代码 diff、测试代码 diff 和测试执行结果。
+
+**门禁**：
+- 测试命令不通过，不允许继续。
+- `unit-test-reviewer` 返回 Critical（如测试未覆盖本次改动点、未断言生产逻辑、通过弱断言/过度 mock 自圆其说），不允许继续。
+- 同一个测试点连续两次未通过时，不得继续自行修复或降低测试标准；必须把两次失败摘要、关联需求/设计依据和可能原因反馈给用户查看后再决定下一步。
 
 #### 3.2 性能检查
 
 读取 `performance-analysis` skill，执行性能扫描。
 
-#### 3.3 三方对齐审查
+#### 3.3 统一审计上下文
 
-以三份材料为输入，执行系统化的对齐检查（读取 `code-reviewer` agent）：
+读取 `audit-context-intake` skill，将 `/code` 本地流程产物归一化为 `AuditContext`：
 
-| 输入材料 | 来源 | 用途 |
-|----------|------|------|
-| 变更记录文档 | 编码过程中增量维护的 `docs/delivery/SV-xxxxx-changelist.md` | 开发者视角的变更说明 |
-| git diff | `git diff main...HEAD` 的实际代码变更 | 代码事实 |
-| 技术方案文档 | `docs/design/SV-xxxxx-tech-design.md` | 业务意图 |
+- `auditMode = local-flow`
+- 技术方案文档：`docs/design/SV-xxxxx-tech-design.md`
+- 变更记录文档：`docs/delivery/SV-xxxxx-changelist.md`
+- git diff：`git diff main...HEAD`
+- V1-V5 已执行结果、测试审视结果、性能扫描摘要和规范验证摘要
+- `AGENTS.md` 中的技术栈、架构模式和当前激活规则
 
-检查维度：
-- **变更记录 vs git diff**：所有实际变更是否都被记录？有无遗漏或多余的文件？
-- **变更记录 + diff vs 技术方案**：代码是否在业务需求上跑偏？有无超出方案范围的变更？有无方案要求但未实现的功能？
-- **架构规范、代码质量、测试覆盖、高风险变更**（原有评审维度保留）
+#### 3.4 统一代码审计
 
-#### 3.4 产出
+启动 `audit-reviewer` agent，基于 `AuditContext` 执行统一代码审计。具体审计维度、Git 规范检查、注释/删除代码检查、评分和报告格式以 `agents/audit-reviewer.md` 为准；`/code` 不重复定义审计标准。
 
-审查阶段产出三份文档：
+`audit-reviewer` 返回 Critical 时，B3 判定为未通过，必须修复后重新执行相关验证维度和统一审计。
 
-1. **代码评审报告**：问题列表（Critical / Warning / Info）+ 评审结论（保存到 `docs/delivery/SV-xxxxx-review-report.md`）
+#### 3.5 产出
+
+验证与审计阶段产出三份文档：
+
+1. **代码评审报告**：统一审计结论、注释/删除代码检查、严重问题、改进建议、疑问与确认、Git 规范检查、评分、V1-V5 验证摘要和交付判定（保存到 `docs/delivery/SV-xxxxx-review-report.md`）
 2. **变更清单（定稿）**：对编码阶段积累的变更记录做最终格式化，补齐遗漏，确认与 diff 一致
-3. **技术参考文档**：从变更记录和审查结果中提炼，面向测试人员（保存到 `docs/delivery/SV-xxxxx-tech-ref.md`）
+3. **技术参考文档**：从变更记录和统一审计结果中提炼，面向测试人员（保存到 `docs/delivery/SV-xxxxx-tech-ref.md`）
 
-**门禁**：发现 Critical 级别的业务偏差时，必须修复后重新审查。
+**门禁**：发现 Critical 级别问题时，必须修复后重新验证和审计；发现 `test` 分支向功能分支合并代码时，直接阻断。
 
-验证循环全部 PASS 且安全审计可交付后，必须确认以下三类**正式交付文档**已生成或定稿：
+验证循环全部 PASS 且统一审计无未解决 Critical 后，必须确认以下三类**正式交付文档**已生成或定稿：
 - `docs/delivery/SV-xxxxx-changelist.md`
 - `docs/delivery/SV-xxxxx-tech-ref.md`
 - `docs/delivery/SV-xxxxx-review-report.md`
 
-`docs/delivery/.state/SV-xxxxx-verification.json` 是 B3 内部机器状态文件，用于断点续验和重验计划，不作为正式交付文档展示。`review-report.md` 必须包含 V1-V5 最终验证摘要；若摘要缺失，应从机器状态文件补写，状态文件缺失或不完整则回到 B3 重跑验证循环。
+`docs/delivery/.state/SV-xxxxx-verification.json` 是 B3 内部机器状态文件，用于断点续验和重验计划，不作为正式交付文档展示。`review-report.md` 必须包含 V1-V5 最终验证摘要和统一审计结论；若摘要缺失，应从机器状态文件或 `audit-reviewer` 结果补写，状态文件缺失或不完整则回到 B3 重跑验证循环。
 
 任一正式交付文档缺失时，不得进入 B4；必须回到对应产出步骤补齐后重新执行文档齐套检查。验证循环全部 PASS 后，更新实施进度：勾选 B3 任务项，状态设为「已验证」，更新最后更新时间。
 
@@ -228,7 +235,7 @@
 
 审查通过后，委派 `doc-updater` agent 检查交付文档的完整性、格式合规性和与代码变更的一致性。检查通过后，更新实施进度：勾选 B4 任务项，状态设为「已交付」，更新最后更新时间。然后展示所有交付物的摘要：
 
-如果 `doc-updater` 返回 Critical（尤其是正式交付文档缺失、`review-report.md` 缺少验证摘要或安全结论、变更清单与 diff 不一致），必须先补齐或修复，再重新执行 `doc-updater`。禁止在 Critical 未闭环时展示“交付物已就绪”。
+如果 `doc-updater` 返回 Critical（尤其是正式交付文档缺失、`review-report.md` 缺少验证摘要或统一审计结论、变更清单与 diff 不一致），必须先补齐或修复，再重新执行 `doc-updater`。禁止在 Critical 未闭环时展示“交付物已就绪”。
 
 > ## 交付物已就绪
 >
@@ -246,7 +253,7 @@
 
 - 编码模式下，Hooks 允许构建/测试命令，但拦截危险操作
 - 所有 commit message 必须关联需求编号
-- 编码子代理同样受 Rules 约束（架构分层、命名规范、事务管理、性能约束等）
+- 编码子代理同样受适用 Rules 约束：`rules/shared/*` + 当前 family-common 规则 + 当前 `techStack` 对应的 profile 规则
 - 变更记录文档在编码过程中持续更新，不在交付阶段事后生成
 - **编排模式约束**：进入编排模式后，主 Agent 禁止直接编写业务代码，职责限定为拆分、派发、验收、收敛。如需接管，必须显式退出编排模式并向用户说明原因
 

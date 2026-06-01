@@ -10,7 +10,7 @@ Exoskeleton 基于 harness 思想构建治理闭环：不是把 Agent 当黑箱�
 - 以 `Rules + Skills` 持续迭代上下文与执行策略，避免一次配置长期失效
 - 以 `Hooks` 承担关键动作拦截和审计，实现高风险操作前置治理
 - 以**战略性上下文压缩**在阶段切换时主动释放 token 空间，通过结构化快照确保关键信息不丢失
-- 以**结构化验证循环**编排构建、测试、性能、对齐、规范五个维度的质量门禁，支持增量重验与断点续验
+- 以**结构化验证循环**编排构建、测试、性能、统一审计、规范五个维度的质量门禁，支持增量重验与断点续验
 - 以**专职子代理**在流水线关键节点自动委派专业审查，通过上下文收窄防止子代理漂移
 - 以人机协同做关键决策兜底，在风险节点保留确认与回滚能力
 
@@ -21,7 +21,7 @@ Exoskeleton 基于 harness 思想构建治理闭环：不是把 Agent 当黑箱�
 在复杂项目中，Agent 的主要挑战通常不在代码生成能力，而在工程可控性。Exoskeleton 重点解决三类问题：
 
 - **主线漂移与任务混乱**：上下文复杂后，Agent 容易偏离目标主线，任务拆解和推进节奏失稳，导致目标丢失与 token 膨胀。Exoskeleton 通过**任务契约约束执行边界**、**战略性上下文压缩释放 token 空间**、**实施进度追踪支持跨会话断点续做**来系统性应对。
-- **未知风险被引入交付**：对业务边界、历史约束和系统耦合理解不充分时，Agent 可能引入看似正确但未经风险识别的改动。Exoskeleton 通过**结构化验证循环**（构建→测试→性能→对齐→规范五维度门禁）和**专职子代理**（架构审查、安全审计、TDD 纪律检查）层层拦截。
+- **未知风险被引入交付**：对业务边界、历史约束和系统耦合理解不充分时，Agent 可能引入看似正确但未经风险识别的改动。Exoskeleton 通过**结构化验证循环**（构建→测试→性能→统一审计→规范五维度门禁）和**专职子代理**（架构审查、单元测试审视、统一代码审计、TDD 纪律检查）层层拦截。
 - **高风险命令误执行**：缺少前置门禁时，破坏性命令可能直接执行，给代码库、环境或数据带来不可逆影响。Exoskeleton 通过**模式隔离 + Hooks 行为拦截 + 路径门禁**构建纵深防线。
 
 Exoskeleton 通过治理闭环把"用起来"变成"越用越稳"。
@@ -34,12 +34,39 @@ Exoskeleton 通过治理闭环把"用起来"变成"越用越稳"。
 | 需求编号全链路贯穿 | SV-ID 串联方案、分支、commit、文档、审计 | 任务契约 |
 | 三层治理 | Skills 指导 + Rules 约束 + Hooks 拦截审计 | 全流程 |
 | 战略性上下文压缩 | 阶段切换时主动压缩，快照保护关键信息 | `context-compaction` rule + skill |
-| 结构化验证循环 | 五维度门禁 + 增量重验 + 断点续验 | `verification-loop` skill |
-| 专职子代理编排 | 关键节点自动委派，上下文收窄防漂移 | `architect`、`tdd-guide`、`security-reviewer` 等 |
+| 结构化验证循环 | 五维度门禁 + 增量重验 + 断点续验；V2 测试后由独立单测审视代理复核覆盖质量，V4 由统一审计代理输出问题、Git 规范检查、注释/删除代码检查和评分 | `verification-loop` skill + `audit-reviewer` agent |
+| 专职子代理编排 | 关键节点自动委派，上下文收窄防漂移 | `architect`、`unit-test-reviewer`、`tdd-guide`、`audit-reviewer` 等 |
 | 实施进度追踪 | 技术方案文档中自动维护进度，跨会话断点续做 | `coding` skill |
-| 三方对齐审查 | 变更记录 + diff + 方案三方对账 | `code-reviewer` agent |
+| 独立 PR/MR 审计 | 直接审计 GitLab MR、commit 或本地 diff；优先使用 Git 可获取的变更和完整代码，与 `/code` B3 共用统一审计内核 | `/audit`、`audit-context-intake`、`audit-reviewer` |
 | 增量变更记录 | 编码时同步维护文档，审查时定稿 | `coding` skill |
 | 模式隔离与命令拦截 | 设计/编码模式 + 危险命令 deny | Hooks |
+| Profile 规则激活 | 根据 `AGENTS.md.techStack` 激活 `shared + family-common + profile` 规则，避免跨技术栈误套规范 | `/init`、`project-profiling`、`verification-loop` |
+
+## 核心流程
+
+```mermaid
+flowchart TD
+    entry["/init / /start / /code / /audit"] --> profile["生成或读取 AGENTS.md"]
+    profile --> techStack["解析 techStack"]
+    techStack --> activation["激活规则与技能：shared + family-common + profile"]
+    activation --> pipeline{"进入哪条流水线？"}
+    pipeline -->|/start| design["流水线 A：需求 → 技术方案 → 用户确认"]
+    pipeline -->|/code 或继续编码| coding["流水线 B：方案 → 编码 → 验证 → 交付"]
+    pipeline -->|/audit| auditInput["独立审计：PR/MR、commit 或本地 diff"]
+    coding --> verify["V1-V5 验证循环"]
+    verify --> v2["V2 测试: testing + unit-test-reviewer"]
+    v2 --> auditContext["audit-context-intake 归一化 AuditContext"]
+    auditInput --> auditContext
+    auditContext --> v4["统一审计内核: audit-reviewer"]
+    v4 --> v5["/code: V5 仅检查当前激活规则，不跨技术栈套用"]
+    v5 --> delivery["交付三份正式文档"]
+    v4 --> auditReport["/audit: 输出独立审计报告"]
+```
+
+当前内置 Profile：
+- `cola-java`：`shared + backend-common + cola-java`
+- `frontend-vue3`：`shared + frontend-common + frontend-vue3`
+- `frontend-react-umi`：`shared + frontend-common + frontend-react-umi`
 
 ## 持续迭代闭环
 
@@ -53,8 +80,8 @@ flowchart LR
 ```
 **欢迎大家结合自己的项目和使用经验提出宝贵意见，更欢迎大家分享各种编程语言的skill&rule来丰富Exoskeleton生态**
 
-**感谢一下同学提出的宝贵意见和建议**
-> @liuxuesen
+**感谢一下同学提出的宝贵意见和建议,欢迎大家继续反馈，一同打造更懂我们的harness基础设施**
+> @liuxuesen  @guoyuxing
 
 ## 文档入口（先看这里）
 

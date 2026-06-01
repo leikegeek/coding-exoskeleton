@@ -1,0 +1,16 @@
+---
+description: React Umi 项目规则：Umi2、DVA、hash 路由、请求栈和生成目录约束
+globs:
+  - "config/{router.config,config,plugin.config}.js"
+  - "src/{pages,models,services,layouts,components,componentsBusinessNew,componentsNew,utils,locales,hooks}/**/*.{js,jsx,ts,tsx}"
+alwaysApply: false
+---
+
+# React Umi Project
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `frontend-react-umi` 时使用本规则；其它项目跳过。
+- Umi 项目路由以 `config/router.config.js` 为权威来源；链接和跳转必须兼容 hash history，不要写 browser-history-only 假设。
+- `src/pages/.umi/` 是生成物，禁止手改；通过配置、真实页面和服务文件完成变更。
+- 跨页或列表缓存状态优先使用既有 DVA model；单页 UI 状态可用 hooks，但不要和项目扩展列表组件重复管理同一请求流。
+- 业务请求必须走 `src/utils/request` 或项目既有文件请求 helper，保留鉴权、loading、abort、错误处理和全局参数注入。
+- 新服务优先放入 `src/services/modules/`，避免继续膨胀历史 `api.js` 或散落在页面组件中。

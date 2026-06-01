@@ -1,4 +1,4 @@
-﻿# Exoskeleton 核心流程与原理说明
+# Exoskeleton 核心流程与原理说明
 
 ## 零、文档分工与权威来源
 
@@ -53,14 +53,14 @@ Exoskeleton 是一套面向企业级项目的 **AI 编程治理框架**，以 Cu
 Layer 3: Hooks（行为拦截层）
          ↑ 拦截危险操作、强制模式门禁、记录审计日志
 Layer 2: Rules（规范约束层）
-         ↑ 编码规范、架构约束、命名规范、事务规范
+         ↑ 编码规范、架构/组件边界、命名规范、性能与安全约束
 Layer 1: Skills（能力指导层）
          ↑ 需求分析、方案设计、方案评审、编码实施、测试设计、交付
 Layer 0: Cursor IDE + AI 模型（基础能力）
 ```
 
 - **Skills** 告诉 AI "怎么做"：如何分析需求、如何设计技术方案、如何写测试
-- **Rules** 告诉 AI "必须遵守什么"：COLA 分层、命名规范、事务边界
+- **Rules** 告诉 AI "必须遵守什么"：任务边界、编码纪律、技术栈架构、命名、性能和安全约束
 - **Hooks** 在 AI 行为发生时"拦截和审计"：阻止危险命令、记录编辑日志、强制模式切换
 
 ---
@@ -93,13 +93,19 @@ coding-exoskeleton/
 │   │   ├── delivery/                  # 交付物格式化与汇总
 │   │   ├── performance-analysis/      # 性能分析
 │   │   ├── context-compaction/        # 战略性上下文压缩
+│   │   ├── audit-context-intake/       # 统一审计上下文接入
 │   │   ├── verification-loop/         # 结构化验证循环
 │   │   └── project-profiling/         # 项目画像生成
+│   │
+│   ├── backend-common/                # 后端项目通用能力
 │   │
 │   ├── cola-java/                     # COLA Java 项目特有
 │   │   ├── cola-architecture/         # COLA 架构设计指导
 │   │   ├── cola-naming/               # COLA 命名规范指导
 │   │   └── common-components/         # 公共组件使用指南
+│   ├── frontend-common/               # 前端项目通用能力
+│   ├── frontend-vue3/                 # Vue 3 前端项目专项能力
+│   ├── frontend-react-umi/            # React Umi 前端项目专项能力
 │   ├── {profile-id}/                  # 按需扩展（目录名即 Profile ID）
 │   └── ...
 │
@@ -112,12 +118,17 @@ coding-exoskeleton/
 │   │   ├── performance.mdc            # 通用性能规则
 │   │   └── coding-discipline.mdc      # 编码纪律规则（最小变更、不投机扩展）
 │   │
+│   ├── backend-common/                # 后端通用规则
+│   │
 │   ├── cola-java/                     # COLA Java 项目特有规则
 │   │   ├── cola-architecture.mdc      # COLA 分层架构规则
 │   │   ├── java-naming.mdc            # Java 命名规范
 │   │   ├── transaction-executor.mdc   # 事务管理规则
 │   │   ├── mq-consumer.mdc            # MQ 消费规则
 │   │   └── performance.mdc            # 项目特有性能约束
+│   ├── frontend-common/               # 前端通用规则
+│   ├── frontend-vue3/                 # Vue 3 项目规则
+│   ├── frontend-react-umi/            # React Umi 项目规则
 │   ├── {profile-id}/                  # 按需扩展（结构同上）
 │   └── ...
 │
@@ -125,14 +136,18 @@ coding-exoskeleton/
 │   ├── init.md                        # /init  → 项目初始化
 │   ├── start.md                       # /start → 流水线 A 入口
 │   ├── code.md                        # /code  → 流水线 B 入口
+│   ├── audit.md                       # /audit → 独立 PR/MR 或 diff 审计
 │   ├── deliver.md                     # /deliver → 交付物补救生成（可选）
 │   └── report.md                      # /report → 查看统计报告
 │
 ├── agents/                            # 子代理定义
-│   ├── code-reviewer.md               # 代码评审子代理
-│   ├── security-reviewer.md           # 安全审计子代理
+│   ├── audit-reviewer.md              # 统一代码审计子代理
+│   ├── code-reviewer.md               # 旧代码评审代理名（兼容入口）
+│   ├── security-reviewer.md           # 旧安全审计代理名（兼容入口）
+│   ├── unit-test-reviewer.md           # 单元测试审视子代理
 │   ├── build-error-resolver.md        # 构建错误修复子代理
 │   ├── architect.md                   # 架构决策审查子代理
+│   ├── design-reviewer.md             # 方案独立评审子代理
 │   ├── tdd-guide.md                   # TDD 引导子代理
 │   ├── coding-subagent.md             # 编码执行子代理契约
 │   └── doc-updater.md                 # 文档完整性子代理
@@ -156,28 +171,33 @@ coding-exoskeleton/
 
 ### 共享 + 项目特有的组合机制
 
-插件内的 skills 和 rules 分为两层：
+插件内的 skills 和 rules 按共享层、family-common 层和 profile 层组合使用：
 
-- **shared/**：所有项目通用的能力和规范（需求分析、方案设计、性能规则等）
-- **cola-java/**（示例，或其他项目标识）：特定技术栈的能力和规范
+- **shared/**：所有项目通用的流水线能力和治理规则（需求分析、方案设计、编码记录、验证、交付等）
+- **backend-common/**：后端技术栈共享能力，与具体后端 profile 组合使用
+- **frontend-common/**：前端技术栈共享能力，与具体前端 profile 组合使用
+- **cola-java/**、**frontend-vue3/**、**frontend-react-umi/**（示例，或其他项目标识）：特定技术栈的能力和规范
 
 #### 技术栈 Profile 机制
 
-Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件。技术栈的"选择性激活"通过以下机制实现：
+Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件；注册不等于执行。技术栈的"选择性激活"通过以下机制实现：
 
 1. **`/init` 命令**（或首次使用 `/start`、`/code` 时自动引导）扫描项目，推断技术栈，生成 `AGENTS.md`（项目画像文件，保存在业务项目根目录）
 2. `AGENTS.md` 的 frontmatter 中声明 `techStack` 字段（如 `cola-java`），同时写入 `.cursor/harness-config.json`
-3. 项目特有的 skills（如 `cola-architecture`）在执行前先读取 `AGENTS.md`，检查技术栈是否匹配，不匹配则自动跳过
-4. 项目特有的 rules 通过 `globs` 限制适用范围（如 `*.java` 文件），非目标语言的文件不触发
+3. 主流程根据 `techStack` 计算当前 family-common：后端 profile 使用 `backend-common`，前端 profile 使用 `frontend-common`，自定义 profile 只使用 `shared`
+4. 项目特有的 skills（如 `cola-architecture`、`vue3-component-delivery`、`react-umi-feature-delivery`）在执行前先读取 `AGENTS.md`，检查技术栈是否匹配，不匹配则自动跳过
+5. 项目特有的 rules 先通过 `globs` 限制候选文件，再由规则正文要求核对 `AGENTS.md.techStack`；V5 规范验证只纳入 `rules/shared/*` + 当前 family-common + 当前 profile 对应规则，禁止跨技术栈套用
 
 **预设 Profile**：
 
 | Profile | 匹配条件 | 激活的专项内容 |
 |---------|----------|---------------|
-| `cola-java` | `pom.xml` + COLA 依赖 + COLA 目录结构 | `skills/cola-java/*` + `rules/cola-java/*` |
+| `cola-java` | `pom.xml` + COLA 依赖 + COLA 目录结构 | `skills/backend-common/*` + `skills/cola-java/*` + `rules/backend-common/*` + `rules/cola-java/*` |
+| `frontend-vue3` | `package.json` + `vue` + `vite` / `@vitejs/plugin-vue` | `skills/frontend-common/*` + `skills/frontend-vue3/*` + `rules/frontend-common/*` + `rules/frontend-vue3/*` |
+| `frontend-react-umi` | `package.json` + `react` + `umi` / `umi-plugin-react` + Umi 目录结构 | `skills/frontend-common/*` + `skills/frontend-react-umi/*` + `rules/frontend-common/*` + `rules/frontend-react-umi/*` |
 | 自定义 | 用户手动描述 | 仅 `skills/shared/*` + `rules/shared/*` |
 
-> **扩展说明**：`spring-boot`、`react-ts`、`go-service` 等 Profile 为规划中的扩展方向，当前版本尚未内置。欢迎按 `docs/profile-extension-template.md` 模板贡献新 Profile。
+> **扩展说明**：`spring-boot`、`react-ts`、`go-service` 等 Profile 可按 `docs/profile-extension-template.md` 模板继续扩展。
 
 #### AGENTS.md 的作用
 
@@ -220,7 +240,7 @@ Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件。�
 
 ### 全局流程图
 
-下图展示了 Exoskeleton 的全部 5 个入口及其交互关系：
+下图展示了 Exoskeleton 的全部 6 个入口及其交互关系：
 
 ```mermaid
 flowchart TD
@@ -228,21 +248,25 @@ flowchart TD
         CMD_INIT["/init — 项目初始化"]
         CMD_START["/start — 从需求开始"]
         CMD_CODE["/code — 从技术方案编码"]
+        CMD_AUDIT["/audit — 独立代码审计"]
         CMD_DELIVER["/deliver — 补救交付文档"]
         CMD_REPORT["/report — 查看统计"]
     end
 
     subgraph preCheck [预检层: 自动执行]
-        PC_Hooks{"Hooks 已安装?"}
-        PC_InstallHooks["安装 Hooks"]
+        PC_Hooks{"全局 Hooks 配置可用?"}
+        PC_InstallHooks["提示执行 install.ps1 安装 Hooks"]
         PC_Agents{"AGENTS.md 存在?"}
         PC_Init["执行 /init 生成项目画像"]
+        PC_Profile["解析 techStack"]
+        PC_Family["确定 family-common<br/>backend-common / frontend-common / 无"]
+        PC_Activate["激活规则/技能集合<br/>shared + family-common + profile"]
         PC_Ready["项目上下文就绪"]
     end
 
     subgraph pipelineA [流水线 A: 需求到技术方案]
-        A_Intake["需求录入 + 完整性门禁"]
-        A_Design["A2: 技术方案(4核心+代码位置) + 自评 + 可选 architect"]
+        A_Intake["A1: 需求录入 + 完整性门禁 + 复杂度判定"]
+        A_Design["A2: 标准/轻量路径 + design-reviewer + 可选 architect"]
         A_Gate{"🚧 用户确认方案 硬门禁"}
         A_Compact["上下文压缩评估 (接「继续/断开」)"]
         A_Choice{"继续编码 or 断开?"}
@@ -252,25 +276,33 @@ flowchart TD
         B_Understand["B0: 理解方案 + 确认疑问 (独立 /code)"]
         B_Prepare["B1: 创建分支 + 拆解任务 + 派方案"]
         B_Code["B2: 编码 + Record门禁 (编排: 子代理组间默认串行)"]
-        B_Review["B3: 验证循环 V1~V5 + 安全 + 三份交付文档"]
+        B_Review["B3: 验证循环 V1~V5<br/>V2单测审视; V4统一审计; V5仅检查当前激活规则<br/>+ 三份交付文档"]
         B_Deliver["B4: doc-updater门禁 + 展示"]
     end
 
     subgraph standalone [独立命令]
+        AUDIT_FLOW["PR/MR、commit 或本地 diff<br/>默认只读审计接入"]
         DELIVER_FIX["从 git diff 补救生成三份交付文档"]
         REPORT_GEN["生成审计统计报告"]
+    end
+
+    subgraph auditCore [统一审计内核]
+        AUDIT_CONTEXT["audit-context-intake<br/>归一化 AuditContext"]
+        AUDIT_REVIEW["audit-reviewer<br/>8段式统一代码审计"]
     end
 
     CMD_INIT --> PC_Init
     CMD_START --> PC_Hooks
     CMD_CODE --> PC_Hooks
+    CMD_AUDIT --> PC_Agents
     CMD_DELIVER --> DELIVER_FIX
     CMD_REPORT --> REPORT_GEN
 
     PC_Hooks -->|"否"| PC_InstallHooks --> PC_Agents
     PC_Hooks -->|"是"| PC_Agents
-    PC_Agents -->|"否"| PC_Init --> PC_Ready
-    PC_Agents -->|"是"| PC_Ready
+    PC_Agents -->|"否"| PC_Init --> PC_Profile
+    PC_Agents -->|"是"| PC_Profile
+    PC_Profile --> PC_Family --> PC_Activate --> PC_Ready
 
     PC_Ready -->|"/start"| A_Intake --> A_Design --> A_Gate
     A_Gate -->|"需要修改/有疑问"| A_Design
@@ -280,13 +312,21 @@ flowchart TD
 
     PC_Ready -->|"/code"| B_Understand --> B_Prepare
     B_Prepare --> B_Code --> B_Review --> B_Deliver
+    PC_Ready -->|"/audit"| AUDIT_FLOW
+    B_Review -->|"V4 local-flow"| AUDIT_CONTEXT
+    AUDIT_FLOW -->|"gitlab-mr / local diff"| AUDIT_CONTEXT
+    AUDIT_CONTEXT --> AUDIT_REVIEW
+    AUDIT_REVIEW -->|"结论回写 B3"| B_Review
+    AUDIT_REVIEW -->|"独立审计报告"| OUT_AUDIT["docs/audit/*-audit-report.md"]
 ```
 
 **图意说明（与实装一致）**：
 
-- **流水线 A**：`A2` 完成技术方案、自评与（按需）架构审查后，**必须先经过** `A_Gate` 用户确认硬门禁；**禁止**在自评结束当轮自动进入编码。用户**确认通过**后，先经 `A_Compact`（`context-compaction` 评估），再在 `A_Choice` 选择「继续」或「断开」；**仅当选择继续**且本会话衔接 B 时，才从 `B_Prepare` 起进入编码（与 `commands/start.md` 第三、四步一致）。
+- **流水线 A**：`A1` 完成需求录入、完整性门禁和复杂度判定后，`A2` 根据判定结果分标准路径或轻量路径执行。标准路径包含数据规模澄清环节。方案落盘后委派 `design-reviewer` 子代理在独立上下文中评审（标准路径还可触发 `architect`）。评审完成后**必须先经过** `A_Gate` 用户确认硬门禁；**禁止**在评审结束当轮自动进入编码。用户**确认通过**后，先经 `A_Compact`（`context-compaction` 评估），再在 `A_Choice` 选择「继续」或「断开」；断开时执行完整性检查，未通过可选择补齐或标记为 draft。**仅当选择继续**且本会话衔接 B 时，才从 `B_Prepare` 起进入编码（与 `commands/start.md` 第三、四步一致）。
 - **流水线 B**：`B2` 若进入编排模式，编码子代理 **组间默认串行**（逐组 Task 派发）；**仅当用户明确确认「允许并行」** 时，方可对无依赖的组同时派发（与 `commands/code.md` B2、`rules/shared/subagent-orchestration.mdc` 一致）。
-- **B3**：`verification-loop` 编排 **V1~V5**；**五维综合 PASS 之后**再执行 `security-reviewer`，再进入 `B4`（与正文「五、B3」及 `skills/shared/verification-loop/SKILL.md` 一致）。
+- **B3**：`verification-loop` 编排 **V1~V5**；其中 V2 测试命令完成后必须启动 `unit-test-reviewer` 独立审视单测覆盖质量；V4 通过 `audit-context-intake` 归一化为 `AuditContext(auditMode=local-flow)` 后启动 `audit-reviewer` 做统一审计，具体审计维度、Git 规范检查、注释/删除代码检查、评分和报告格式由 `agents/audit-reviewer.md` 统一定义。
+- **/audit**：独立审计入口，不进入编码交付流水线；它与 `/code` B3 共用 `audit-context-intake → audit-reviewer` 审计内核，差异只在信息来源、`auditMode`、证据可信度和输出形态。`/audit` 默认只读，输出 `docs/audit/*-audit-report.md`。
+- **规则激活**：所有 rules/skills 会被插件注册，但流水线只主动使用 `shared + 当前 family-common + 当前 profile`。非当前 `techStack` 的专项 skill 必须跳过；V5 规范验证禁止把其它技术栈规则纳入判定。
 
 ### 各阶段涉及的组件总览
 
@@ -294,16 +334,17 @@ flowchart TD
 |------|--------|-------|-------|--------|
 | **/init** | `project-profiling` | - | - | - |
 | **/start A1** | `requirement-intake` | `task-contract`, `work-mode-policy` | `before-submit-prompt-lite`, `before-shell-execution`, `after-file-edit` | - |
-| **/start A2** | `tech-design`, `design-review`, `cola-architecture`* | `task-contract`, `work-mode-policy`, `performance` | 同上 | `architect`（复杂方案时） |
+| **/start A2** | `tech-design`, `design-review`, 当前 family-common/profile 设计类 skill* | `task-contract`, `work-mode-policy`, `performance` + 当前 family-common/profile 规则* | 同上 | `design-reviewer`（方案落盘后）, `architect`（标准路径复杂方案时） |
 | **/code B0** | - | `task-contract`, `work-mode-policy` | `before-submit-prompt-lite` | - |
 | **/code B1** | `implementation-planning`, `testing`, `coding` | `task-contract` | `before-submit-prompt-lite` | - |
-| **/code B2** | `coding`, `cola-naming`*, `common-components`* | `cola-architecture`*, `java-naming`*, `transaction-executor`*, `mq-consumer`*, `performance`*, `performance`(shared), `task-contract`, `coding-discipline`, `subagent-orchestration` | `before-shell-execution`, `after-file-edit`, `pre-tool-use`** | `coding-subagent`（编排模式）, `tdd-guide` |
-| **/code B3** | `verification-loop`, `testing`, `performance-analysis`, `delivery` | 规范验证（V5）时对照适用的 `rules/*.mdc` 与项目 lint | `after-file-edit` | V1 失败时：`build-error-resolver`；V4 对齐：`code-reviewer`；V1–V5 综合 PASS 后：`security-reviewer` |
+| **/code B2** | `coding` + 当前 family-common/profile 编码类 skill* | `task-contract`, `coding-discipline`, `subagent-orchestration`, `performance`(shared) + 当前 family-common/profile 规则* | `before-shell-execution`, `after-file-edit`, `pre-tool-use`** | `coding-subagent`（编排模式）, `tdd-guide` |
+| **/code B3** | `verification-loop`, `testing`, `performance-analysis`, `audit-context-intake`, `delivery` | V5 只对照 `rules/shared/*` + 当前 family-common + 当前 profile 与项目 lint | `after-file-edit` | V1 失败时：`build-error-resolver`；V2 测试后：`unit-test-reviewer`；V4 统一审计：`audit-reviewer` |
 | **/code B4** | `delivery` | - | - | `doc-updater` |
+| **/audit** | `audit-context-intake` | `task-contract`, `work-mode-policy` | - | `audit-reviewer` |
 | **/deliver** | `delivery` | - | - | - |
 | **/report** | - | - | - | - |
 
-\* 仅当 AGENTS.md 中 techStack = cola-java 时激活
+\* 仅当 AGENTS.md 中 techStack 匹配对应专项 Profile 时激活，例如 `cola-java`、`frontend-vue3`、`frontend-react-umi`
 \** 仅 Full 档位
 
 ---
@@ -314,13 +355,13 @@ flowchart TD
 
 **触发方式**：
 - `/start SV-34577`（带需求编号）
-- `/start 给订单列表加一个按供应商筛选的功能`（口头需求，插件会要求补充 SV-ID）
+- `/start 给订单列表加一个按供应商筛选的功能`（口头需求，SV-ID 可选）
 
 **核心动作**：
 
 1. **解析需求**：
    - 有文档时：提取需求编号、标题、描述、验收标准
-   - 口头需求时：通过对话提炼需求要素，**要求用户提供需求编号**（不可省略）
+   - 口头需求时：通过对话提炼需求要素，**建议用户提供需求编号**（非阻塞，用户可跳过）
 
 2. **读取项目上下文**：优先使用 `AGENTS.md` 中的项目画像（技术栈、架构模式、模块结构），仅在画像信息不足时补充扫描
 
@@ -328,31 +369,42 @@ flowchart TD
 
 4. **建立任务契约**：
    - 模式 → 设计模式（初始强制）
-   - 需求编号 → 必填
+   - 需求编号 → 推荐项（强烈建议提供），无编号时以简短标识替代
    - 允许写入路径 → 仅文档目录
    - 禁止项 → 不修改代码、不执行构建命令
 
-**为什么要求需求编号**：需求编号是串起技术方案、分支、变更清单、技术参考文档以及跨团队协作（测试、产品、架构师）的唯一 key。没有它，后续的可追溯性无法建立。
+5. **复杂度判定**：需求完整性门禁通过后，根据需求的影响范围和变更性质判定复杂度（轻量/标准），向用户展示判定结果并确认（用户可覆盖）。判定结果决定 A2 走标准路径还是轻量路径。
+
+**关于需求编号**：需求编号是串起技术方案、分支、变更清单、技术参考文档以及跨团队协作（测试、产品、架构师）的唯一 key。强烈建议提供以保证全链路可追溯，但轻量需求可跳过。
 
 ### A2: 技术方案设计与评审
 
-**核心动作**：
+根据 A1 复杂度判定结果，A2 分为**标准路径**和**轻量路径**两条执行链路。
 
-1. **澄清**：只确认会影响设计/编码的阻断性问题，优先选择题，默认每轮不超过 3-5 个问题
-2. **方案设计**：提出 2-3 种方案，附取舍分析和推荐
-3. **输出文档**：默认输出轻量功能技术方案，仅保留 4 个核心部分；只有用户明确要求"架构设计方案/系统设计方案/架构方案"时，才输出 8 部分架构模板。
+#### 标准路径（复杂度判定 = 标准需求）
 
-   默认功能技术方案：
-   - 功能概述与边界
-   - 核心业务流程（必须包含 mermaid 主流程图；跨模块/异步场景补充时序图）
-   - 代码实施位置（必须写明新增/修改代码的目录层次、模块、文件位置和参考实现；必要时包含数据/接口改动）
-   - 测试与验收
+1. **澄清**：确认会影响设计/编码的阻断性问题，优先选择题，默认每轮不超过 3-5 个问题
+2. **代码阅读**：阅读项目代码，识别受影响的模块和层级
+3. **数据规模澄清**：基于代码阅读结果，列出核心表的当前/预期数据量，等待用户确认。数据规模作为方案中分页、索引、批处理策略的硬约束
+4. **方案设计**：提出 2-3 种方案，附取舍分析和推荐
+5. **输出文档**：默认输出轻量功能技术方案（4 段）；后端 profile 涉及接口变更时按 `backend-api-contract` skill 输出接口契约
+6. **独立评审**：委派 `design-reviewer` 子代理在独立上下文中执行方案评审
+7. **架构审查**（复杂方案时）：委派 `architect` agent 进行架构决策审查
 
-   架构设计方案在用户明确要求时才扩展为 8 部分结构，补充数据结构、关键设计决策、可观测性、测试策略、风险与实施、实施进度等架构级内容。
-4. **自评审**：自动执行方案评审，检查 Critical / Important / Nice-to-have 问题
-5. **架构审查**（复杂方案时）：当方案涉及新增模块、引入新技术组件、跨模块数据流变更或数据模型重构时，委派 `architect` agent 进行架构决策审查
+#### 轻量路径（复杂度判定 = 轻量需求）
 
-6. **A2 收口（与实装绑定）**：上述步骤结束后，仅允许在文档目录内落盘方案与评审类产出；**不得**因「评审可开发」等理由进入分支、B1、/code。细节见 `commands/start.md` 第二步第 7 点与 `skills/shared/tech-design/SKILL.md` 中「/start 流水线 A2 约束」。
+1. **快速澄清**：1-2 个问题，仅阻断性缺口
+2. **代码阅读**：阅读相关代码
+3. **单方案直出**：跳过多方案对比
+4. **输出精简文档**：4 段结构
+5. **独立评审**：委派 `design-reviewer` 子代理执行评审
+6. architect 子代理不触发
+
+#### 共有特征
+
+- 默认功能技术方案包含 4 个核心部分：功能概述与边界、核心业务流程（含 mermaid 图）、代码实施位置、测试与验收
+- 架构设计方案在用户明确要求时才扩展为 8 部分结构
+- **A2 收口**：仅允许在文档目录内落盘方案与评审类产出；不得因「评审可开发」等理由进入分支、B1、/code
 
 **产出**：`docs/design/SV-34577-tech-design.md`
 
@@ -369,15 +421,19 @@ A2 完成后，**必须阻塞等待用户对技术方案的明确确认，不得
 
 ### A3: 流水线 A 出口
 
-方案经用户确认后（即 `start.md` 第三步硬门禁已通过），进入第四步。执行顺序与全局流程图一致：**先**确认技术方案文件已落盘且包含 SV-ID、4 个核心部分、业务流程图和代码实施位置，**再**执行 `context-compaction` 评估（A→B 衔接是关键压缩点），最后请用户在「继续编码 / 断开」中二选一。若方案完整性检查不通过，必须回到 A2 补齐并重新经过用户确认。
+方案经用户确认后（即 `start.md` 第三步硬门禁已通过），进入第四步。执行顺序与全局流程图一致：**先**确认技术方案文件已落盘且包含需求编号（或简短标识）、4 个核心部分、业务流程图和代码实施位置，**再**执行 `context-compaction` 评估（A→B 衔接是关键压缩点），最后请用户在「继续编码 / 断开」中二选一。
 
-**继续编码**：直接衔接进入流水线 B（通常从 `B1` 开始，本会话内已衔接时跳过 `B0`）。此时无需重新理解技术方案，上下文已在当前会话中。
+**继续编码**：完整性检查通过后，直接衔接进入流水线 B（通常从 `B1` 开始，本会话内已衔接时跳过 `B0`）。完整性不通过时必须回到 A2 补齐并重新经过用户确认。
 
-**断开**：仅保存技术方案文档并结束当前流程。后续可以：
+**断开**：执行方案完整性检查后处理：
+- **通过**：保存文档到 `docs/design/`，标记为正式版，结束流程
+- **未通过**：向用户提示缺失项并给出选择——补齐后断开，或标记为 draft 断开（保存为 `*-draft.md`，续接时需先补齐）
+
+后续可以：
 - 自己在新会话中通过 `/code SV-34577` 继续
 - 将文档交给其他开发者接手
 
-断开后的关键约束：技术方案文档中必须包含需求编号，这是续接的唯一依据。
+断开后的关键约束：技术方案文档中必须包含需求编号（或简短标识），这是续接的唯一依据。
 
 ---
 
@@ -472,10 +528,10 @@ A2 完成后，**必须阻塞等待用户对技术方案的明确确认，不得
 **TDD 纪律保障**：每个任务 commit 后，由 `tdd-guide` agent 自动检查 TDD 节奏完整性（测试是否先于实现、覆盖率是否达标）。
 
 **强制约束（由 Rules 保障）**：
-- 架构分层规范（如 COLA：domain 不依赖 infrastructure）
-- 命名规范
-- 事务管理规范
-- 性能规范（避免 N+1、循环内 RPC 等）
+- 当前 profile 的架构/组件边界
+- 当前 profile 的命名与代码风格
+- 当前 profile 的数据一致性、事务、状态或组件契约约束
+- 性能规范（按当前 profile 检查后端批处理/远程调用或前端渲染/请求等风险）
 
 ### B3: 代码审查与对齐
 
@@ -488,38 +544,37 @@ B3 以 **`verification-loop` skill** 为**编排层**（详见 `skills/shared/ve
 | 维度 | 内容 | 主要调用 |
 |------|------|----------|
 | **V1 构建** | 编译/构建通过，无阻断性错误 | 项目构建命令（自 `AGENTS.md` 等） |
-| **V2 测试** | 全量单元测试、覆盖率基线 | `testing` skill |
-| **V3 性能** | N+1、循环内 RPC、批量操作等 | `performance-analysis` skill |
-| **V4 对齐** | 变更记录 vs `git diff` vs 技术方案，三方对账 | `code-reviewer` agent（输入三份材料，逻辑见该 agent 与 `commands/code.md` B3） |
-| **V5 规范** | lint/checkstyle/格式化与架构、命名等规范 | 项目规范工具 + 适用的 `rules/*.mdc` |
+| **V2 测试** | 全量单元测试、覆盖率基线，并由独立审视代理确认单测覆盖需求、技术设计和生产逻辑 | `testing` skill + `unit-test-reviewer` agent |
+| **V3 性能** | 当前 family-common/profile 规则定义的 Critical 性能风险 | `performance-analysis` skill + 当前 family-common/profile 性能 skill/rules |
+| **V4 统一审计** | 基于 `AuditContext` 执行统一代码审计，输出问题、Git 规范检查、注释/删除代码检查和评分 | `audit-context-intake` skill + `audit-reviewer` agent |
+| **V5 规范** | lint/checkstyle/格式化与架构、命名等规范 | 项目规范工具 + `rules/shared/*` + 当前 family-common + 当前 profile |
 
 **V1 失败时**：自动委派 `build-error-resolver` agent，根据构建错误输出给出诊断与修复建议，再进入修复→重验（与 `rules/shared/subagent-orchestration.mdc` 一致）。
 
-**V2 / V3 / V5 未通过**：按 `verification-loop` 的修复流程处理；重验时**跳过**已为 ✅/⚠️ 的维度，只重验 ❌ 维度（除非用户选择清空检查点全量重验）。
+**V2 测试审视门禁**：测试命令执行后，必须启动独立 `unit-test-reviewer` agent。审视标准以需求文档、技术设计文档、生产代码 diff、测试代码 diff 和测试结果为准；测试第一目标是覆盖本次改动点并验证生产逻辑。若审视发现弱断言、过度 mock、未覆盖关键需求或未触达生产逻辑，V2 视为 ❌。同一个测试点连续两次未通过时，主 Agent 必须停止自行修复或降低标准，将两次失败摘要、关联需求/设计依据和可能原因反馈给用户查看。
 
-#### 3.2 三方对齐审查（V4 的核心内容）
+**V2 / V3 / V5 未通过**：按 `verification-loop` 的修复流程处理；重验时**跳过**已为 ✅/⚠️ 的维度，只重验 ❌ 维度（除非用户选择清空检查点全量重验）。V2 的连续失败升级规则优先于自动修复循环。
 
-V4 以三份材料为输入，由 `code-reviewer` agent 执行系统化对齐（与上表一致）：
+#### 3.2 统一代码审计（V4 的核心内容）
 
-| 输入材料 | 来源 | 作用 |
-|----------|------|------|
-| 变更记录文档 | B2 编码阶段增量维护 | 开发者视角的变更说明 |
-| git diff | `git diff main...HEAD` | 代码变更的客观事实 |
-| 技术方案文档 | 设计阶段或外部输入 | 业务意图 |
+V4 先读取 `audit-context-intake` skill，把本地 `/code` 产物归一化为 `AuditContext`：
 
-**检查要点**：变更记录完整性（对 diff）、业务对齐度（对技术方案）、架构/质量/测试覆盖/高风险变更等。发现 **Critical** 级业务偏差时须修复后该维度重验通过方可继续。
+- 技术方案文档：业务意图
+- 变更记录文档：开发者视角的变更说明
+- git diff：代码变更事实
+- V1-V5 已执行结果：构建、测试、性能、规范等验证证据
+- `AGENTS.md`：技术栈、架构模式和当前激活规则
 
-#### 3.3 安全审计（五维 PASS 后、B4 前）
+随后启动 `audit-reviewer` agent 执行统一代码审计。审计维度和报告格式集中在 `agents/audit-reviewer.md`，包括逻辑正确性、安全性、性能优化、代码质量、健壮性、兼容性与可维护性、Git 规范，以及注释/删除代码专项检查。发现 **Critical** 级问题，或发现 `test` 分支向功能分支合并代码时，V4 判定为 ❌，须修复后重验。
 
-在 `verification-loop` 对 V1–V5 **综合评判为可进入交付前**（见该 skill 第四步）之后、**进入 B4 并展示交付物之前**，由 `security-reviewer` agent 执行安全维度审查（注入、认证授权、数据与业务逻辑安全、依赖与配置等）。变更涉及接口层、权限、数据库或文件处理时，安全审计视为**必须执行**（与 `rules/shared/subagent-orchestration.mdc` 一致）。  
-安全审查**不占用** V1–V5 中某一维的编号，避免与「先对齐后规范」的固定顺序冲突；其结论作为 **B3 收口** 写入 `review-report.md`，**仍可能**因 Critical 级安全问题要求修复并重走相关验证维度（由主 Agent 与规则判定）。
+`/audit` 独立入口也共用同一个 `audit-reviewer`，区别只是 `AuditContext.auditMode = gitlab-mr`，业务依据来自 MR 描述、关联 issue、commit、discussion、pipeline 和 diff，而不是 `/code` 的技术方案与变更清单。
 
-#### 3.4 审查与验证产出
+#### 3.3 审查与验证产出
 
 `verification-loop` 在**第五步**与 B3 收口阶段约定产出（与 skill 原文一致，路径约定不变）：
 
 1. **机器状态文件**：`docs/delivery/.state/SV-xxxxx-verification.json`（V1-V5 状态、失败摘要、修复动作、重验计划和日志引用；非正式交付文档）
-2. **代码评审报告**：`docs/delivery/SV-xxxxx-review-report.md`（整合三方对齐、问题列表、V1-V5 最终验证摘要、安全审计结论和交付判定）
+2. **代码评审报告**：`docs/delivery/SV-xxxxx-review-report.md`（整合统一审计结论、注释/删除代码检查、严重问题、改进建议、疑问与确认、Git 规范检查、评分、V1-V5 最终验证摘要、Critical 闭环状态和交付判定）
 3. **变更清单定稿**：对 B2 累积的变更记录做终检与格式对齐
 4. **技术参考文档**：`docs/delivery/SV-xxxxx-tech-ref.md`（面向测试等角色）
 
@@ -529,17 +584,17 @@ V4 以三份材料为输入，由 `code-reviewer` agent 执行系统化对齐（
 
 - 变更清单在 B2 已增量积累绝大部分内容，B3 做「最后一公里」校验
 - 技术参考与综合评审在全局审阅后产出最合适
-- 各文档分工明确，避免互相复述：`changelist` 记录文件级事实，`tech-ref` 面向测试说明验证路径，`review-report` 记录问题、验证摘要、安全结论和交付判定；验证过程状态由机器状态 JSON 承担，不再作为 Markdown 交付文档维护。
+- 各文档分工明确，避免互相复述：`changelist` 记录文件级事实，`tech-ref` 面向测试说明验证路径，`review-report` 记录问题、验证摘要、统一审计结论和交付判定；验证过程状态由机器状态 JSON 承担，不再作为 Markdown 交付文档维护。
 
 **综合门禁**（`verification-loop` 第四步）：**所有维度为 ✅ 或 ⚠️** 时综合 **PASS** 方可进入 B4。任一维 **❌** 时进入 **修复 → 重验**（默认最多 **3** 轮，可配置，见 `verification-loop`）。超过轮次未通过则 **FAIL**，需人工介入。
 
-**交付文档齐套门禁**：综合 PASS 且安全审计可交付后、进入 B4 前，必须确认三类正式交付文档全部存在且需求编号一致：`changelist.md`、`tech-ref.md`、`review-report.md`。`review-report.md` 必须包含 V1-V5 验证摘要、安全审计结论和交付判定。任一文档缺失或最低要求不满足时，不得视为可交付，必须回到对应产出步骤补齐后重新检查。
+**交付文档齐套门禁**：综合 PASS 后、进入 B4 前，必须确认三类正式交付文档全部存在且需求编号一致：`changelist.md`、`tech-ref.md`、`review-report.md`。`review-report.md` 必须包含 V1-V5 验证摘要、统一审计结论和交付判定。任一文档缺失或最低要求不满足时，不得视为可交付，必须回到对应产出步骤补齐后重新检查。
 
 ### B4: 交付
 
-前置条件：B3 中 `verification-loop` 对 V1–V5 已 **综合 PASS**，**3.3 安全审计** 已得到可交付结论（无未解决的 Critical，或已修复并重验相关项），且三类正式交付文档已齐套。随后由 `doc-updater` agent 检查交付文档的完整性、格式合规性和与代码变更的一致性，确认齐套后进入交付展示。
+前置条件：B3 中 `verification-loop` 对 V1–V5 已 **综合 PASS**，V4 统一审计无未解决 Critical，且三类正式交付文档已齐套。随后由 `doc-updater` agent 检查交付文档的完整性、格式合规性和与代码变更的一致性，确认齐套后进入交付展示。
 
-如果 `doc-updater` 返回 Critical（正式交付文档缺失、`review-report.md` 缺少验证摘要或安全结论、变更清单与 diff 不一致等），主 Agent 必须先补齐或修复，再重新执行 `doc-updater`。禁止在 Critical 未闭环时展示"交付物已就绪"。
+如果 `doc-updater` 返回 Critical（正式交付文档缺失、`review-report.md` 缺少验证摘要或统一审计结论、变更清单与 diff 不一致等），主 Agent 必须先补齐或修复，再重新执行 `doc-updater`。禁止在 Critical 未闭环时展示"交付物已就绪"。
 
 所有交付物已就绪，直接展示并让用户选择：
 
@@ -549,7 +604,7 @@ V4 以三份材料为输入，由 `code-reviewer` agent 执行系统化对齐（
 |--------|------|----------|
 | 变更清单 | `docs/delivery/SV-xxxxx-changelist.md` | B2 增量维护，B3 定稿 |
 | 技术参考文档 | `docs/delivery/SV-xxxxx-tech-ref.md` | B3 审查阶段产出 |
-| 代码评审报告 | `docs/delivery/SV-xxxxx-review-report.md` | B3 审查、验证、安全收口后定稿 |
+| 代码评审报告 | `docs/delivery/SV-xxxxx-review-report.md` | B3 验证与统一审计收口后定稿 |
 | Feature 分支代码 | `feature/SV-xxxxx-...` | B2 编码阶段 |
 
 用户选择处理方式：
@@ -639,7 +694,7 @@ V4 以三份材料为输入，由 `code-reviewer` agent 执行系统化对齐（
   → 🚧 展示方案摘要和评审结论，阻塞等待用户确认（硬门禁）
   → 用户确认通过 → 选择"继续编码"
   → 创建分支 → 拆解任务 → TDD 编码（每次 commit 同步更新变更记录）
-  → B3 结构化验证循环（V1–V5，机器状态）→ 安全审计 → 三份正式交付文档
+  → B3 结构化验证循环（V1–V5，V4 统一审计）→ 三份正式交付文档
   → 展示交付物 → 提交 PR
 ```
 
@@ -678,6 +733,22 @@ V4 以三份材料为输入，由 `code-reviewer` agent 执行系统化对齐（
   → B3 验证循环 → 审查与交付物 → PR
 ```
 
+### 场景 5：直接审计 GitLab MR
+
+用户已有别人提交的 MR，只希望 AI 做只读代码审计。
+
+```
+/audit https://gitlab.example.com/group/project/-/merge_requests/123
+  → 检查 AGENTS.md 项目画像（缺失时提示但不强制）
+  → 优先通过本地 Git 获取 diff 和变更文件完整代码
+  → 可访问时再通过公开信息、glab 登录态或只读 token 补充 MR 描述、comments、pipeline
+  → 归一化 AuditContext 并标注业务证据可信度
+  → audit-reviewer 统一审计
+  → 输出 docs/audit/MR-123-audit-report.md
+```
+
+浏览器中的 GitLab 登录态不能被命令行直接复用。私有仓库如本地 Git 已具备访问权限，可先按 Git diff 和完整代码进行审计；`glab auth login` 或 `GITLAB_TOKEN` / `GLAB_TOKEN` 只用于增强 MR 描述、评论、pipeline 等上下文。
+
 ---
 
 ## 八、需求编号的全链路贯穿
@@ -699,7 +770,7 @@ SV-34577
   │
   ├── 技术参考文档: docs/delivery/SV-34577-tech-ref.md     /code B3 产出
   │
-  ├── 代码评审报告: docs/delivery/SV-34577-review-report.md    /code B3 产出（含验证摘要、安全结论、交付判定）
+  ├── 代码评审报告: docs/delivery/SV-34577-review-report.md    /code B3 产出（含验证摘要、统一审计结论、交付判定）
   │
   ├── 机器状态: docs/delivery/.state/SV-34577-verification.json /code B3 内部使用, 不作为交付文档
   │
@@ -759,14 +830,15 @@ SV-34577
 | 子代理 | 类型 | 绑定阶段 | 触发条件 | 职责 |
 |--------|------|---------|---------|------|
 | `coding-subagent` | 编码执行 | B2 | 编码任务按业务边界归组后**分组数 ≥ 2** 进入编排模式；实装为 Task + `generalPurpose` + 契约见 `commands/code.md` B2.2 与 `agents/coding-subagent.md` | 按组在隔离上下文中 TDD 编码并返回结构化结果 |
-| `architect` | 专职审查 | A2 | 方案涉及新模块/新技术/跨模块变更时 | 架构决策审查 |
+| `design-reviewer` | 专职审查 | A2 | tech-design 文档落盘后自动触发 | 独立上下文方案评审 |
+| `architect` | 专职审查 | A2 | 标准路径中方案涉及新模块/新技术/跨模块变更时 | 架构决策审查 |
 | `tdd-guide` | 专职审查 | B2 | 每个任务 commit 后 | TDD 节奏完整性检查 |
 | `build-error-resolver` | 专职审查 | B3 (V1) | 构建验证失败时 | 构建错误诊断与修复建议 |
-| `code-reviewer` | 专职审查 | B3 (V4) | 五维循环中的「对齐验证」步骤 | 三方对齐与代码评审（`verification-loop` 编排） |
-| `security-reviewer` | 专职审查 | B3（V1–V5 综合 PASS 后、B4 前） | 五维验证循环通过后自动触发；特定变更类型为必须 | 安全维度审查 |
+| `unit-test-reviewer` | 专职审查 | B3 (V2) | 每次测试命令执行完成后 | 独立审视单测是否覆盖需求、技术设计和生产逻辑，防止降标准通过 |
+| `audit-reviewer` | 专职审查 | B3 (V4) 与 `/audit` | `audit-context-intake` 生成 `AuditContext` 后 | 统一代码审计，输出问题、Git 规范检查、注释/删除代码检查和评分 |
 | `doc-updater` | 专职审查 | B4 | 验证循环 PASS 后、交付展示前 | 交付文档完整性检查 |
 
-所有子代理遵循 **`rules/shared/subagent-orchestration.mdc`** 中的上下文收窄协议：主 Agent 只传递该子代理「必须接收」的最小信息集，剔除「禁止接收」的无关内容。专职审查类子代理以 **三段式** 结构（结论 + 问题列表 + 建议）返回结果；**编码子代理**以 **`agents/coding-subagent.md`** 中定义的「编码执行结果」结构返回（与三段式不同）。
+所有子代理遵循 **`rules/shared/subagent-orchestration.mdc`** 中的上下文收窄协议：主 Agent 只传递该子代理「必须接收」的最小信息集，剔除「禁止接收」的无关内容。普通专职审查类子代理以 **三段式** 结构（结论 + 问题列表 + 建议）返回结果；`audit-reviewer` 使用自身定义的 8 段式代码审计报告；**编码子代理**以 **`agents/coding-subagent.md`** 中定义的「编码执行结果」结构返回（与三段式不同）。
 
 ---
 
@@ -782,9 +854,9 @@ Exoskeleton 的核心价值可以用一句话概括：
 - **三层治理**（Skills + Rules + Hooks）确保 AI 输出的稳定性和规范性
 - **编排模式与子代理委派**通过上下文隔离让主 Agent 保持轻量，按业务边界委派子代理执行编码
 - **增量变更记录**在编码过程中同步维护文档，避免事后回溯的精度损失和 token 浪费
-- **三方对齐审查**用变更记录 + diff + 技术方案三方对账，确保代码不偏离业务需求
+- **统一代码审计**用归一化 `AuditContext` 执行同一套审计维度和报告格式，并支持 `/code` 与 `/audit` 共用同一审计内核
 - **结构化交付物**（变更清单 + 技术参考文档 + 评审报告）降低人工 review 和测试的理解成本
-- **验证循环**编排构建、测试、性能、对齐、规范五个维度的结构化验证，支持增量重验和检查点断点续验
+- **验证循环**编排构建、测试、性能、统一审计、规范五个维度的结构化验证，V2 由独立单元测试审视代理把关覆盖质量，V4 由统一审计代理识别业务和安全等风险，支持增量重验和检查点断点续验
 - **专职子代理**在流水线关键节点自动委派，通过上下文收窄协议防止子代理漂移
 - **战略性上下文压缩**在阶段切换时主动压缩上下文，通过结构化快照确保关键信息不丢失
 - **实施进度追踪**在技术方案文档中自动维护进度段落，支持跨会话断点续做

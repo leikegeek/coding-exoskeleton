@@ -1,4 +1,4 @@
-﻿---
+---
 name: project-profiling
 displayName: 项目画像生成
 description: 扫描项目文件和目录结构，推断技术栈和架构模式，通过交互确认生成项目画像文件（AGENTS.md）。适用于项目初始化阶段。
@@ -46,8 +46,10 @@ version: '1.0.2'
 - `pom.xml` 中包含 `io.quarkus` → Quarkus
 
 **JavaScript/TypeScript 生态**：
-- `package.json` 中包含 `react` → React
-- `package.json` 中包含 `vue` → Vue
+- `package.json` 中包含 `vue` + `vite` / `@vitejs/plugin-vue` → frontend-vue3
+- `package.json` 中包含 `react` + `umi` / `umi-plugin-react` → frontend-react-umi
+- `package.json` 中包含 `react` → React（自定义前端）
+- `package.json` 中包含 `vue` → Vue（自定义前端）
 - `package.json` 中包含 `next` → Next.js
 - `package.json` 中包含 `express` / `koa` / `nestjs` → Node.js 后端
 
@@ -64,7 +66,8 @@ version: '1.0.2'
 |----------|----------|
 | `adapter/` + `application/` + `domain/` + `infrastructure/` | COLA |
 | `controller/` + `service/` + `dao/` 或 `repository/` | MVC 分层 |
-| `src/` + `components/` + `pages/` | 前端组件化 |
+| `src/` + `components/` + `views/` | Vue 前端组件化 |
+| `src/` + `pages/` + `config/router.config.js` | React Umi 前端组件化 |
 | `cmd/` + `internal/` + `pkg/` | Go 标准布局 |
 | `src/` + `tests/` + `benches/` | Rust 标准布局 |
 
@@ -93,14 +96,43 @@ version: '1.0.2'
 **匹配条件**：`pom.xml` 存在 + `com.alibaba.cola` 依赖 + COLA 目录结构
 
 **激活的专项规范**：
-- Skills：`skills/cola-java/cola-architecture/`（COLA 架构方案设计）、`skills/cola-java/cola-naming/`（COLA 命名规范）
-- Rules：`rules/cola-java/cola-architecture.mdc`、`rules/cola-java/java-naming.mdc`、`rules/cola-java/transaction-executor.mdc`、`rules/cola-java/mq-consumer.mdc`
+- Skills：`skills/backend-common/*` + `skills/cola-java/cola-architecture/`（COLA 架构方案设计）、`skills/cola-java/cola-naming/`（COLA 命名规范）、`skills/cola-java/common-components/`
+- Rules：`rules/backend-common/*` + `rules/cola-java/cola-architecture.mdc`、`rules/cola-java/java-naming.mdc`、`rules/cola-java/transaction-executor.mdc`、`rules/cola-java/mq-consumer.mdc`、`rules/cola-java/performance.mdc`
 
 **AGENTS.md 预填内容**：
 - 架构：COLA 4.x 分层
 - 命名：COLA 命名规范（XxxCmdExe、XxxQryExe、IXxxGateway 等）
+- 后端通用：接口契约、幂等、批处理、性能与回滚策略
 - 事务：仅在 Executor 层使用 `@Transactional`
 - 分层约束：domain 不依赖 infrastructure
+
+### frontend-vue3
+
+**匹配条件**：`package.json` 存在 + `vue` + `vite` / `@vitejs/plugin-vue`，常见目录包含 `src/views`、`src/components`、`src/stores`
+
+**激活的专项规范**：
+- Skills：`skills/frontend-common/*` + `skills/frontend-vue3/*`
+- Rules：`rules/frontend-common/*` + `rules/frontend-vue3/*`
+
+**AGENTS.md 预填内容**：
+- 架构：Vue 3 SFC + Composition API + 前端组件化
+- 请求：统一请求封装和项目生成 API 优先
+- 组件：Element Plus 与项目封装组件优先
+- 质量：关注表单、弹窗、列表、空值、权限态和性能回归
+
+### frontend-react-umi
+
+**匹配条件**：`package.json` 存在 + `react` + `umi` / `umi-plugin-react`，常见目录包含 `config/router.config.js`、`src/pages`、`src/models`
+
+**激活的专项规范**：
+- Skills：`skills/frontend-common/*` + `skills/frontend-react-umi/*`
+- Rules：`rules/frontend-common/*` + `rules/frontend-react-umi/*`
+
+**AGENTS.md 预填内容**：
+- 架构：Umi + DVA + hash 路由 + 前端组件化
+- 请求：`src/utils/request` 与 `src/services/modules` 优先
+- UI：Ant Design 3.x 为主，antd4 仅隔离使用
+- 质量：关注路由菜单权限、全局请求参数、国际化、IE11 兼容和列表性能
 
 ### 自定义
 
@@ -188,8 +220,8 @@ project-root/
 {基于 Profile 预填或用户补充}
 
 - 命名规范：{概要}
-- 分层约束：{概要}
-- 事务管理：{概要}
+- 分层/组件边界：{概要}
+- 质量与性能约束：{概要}
 - 其他：{团队特殊约定}
 
 ## 协作约定
