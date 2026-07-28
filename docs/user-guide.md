@@ -5,6 +5,9 @@
 ## 快速跳转
 
 - 机制权威文档：`docs/plugin-core-workflow.md`
+- Claude Code 用户指南：`docs/claude-code-guide.md`
+- Codex 用户指南：`docs/codex-user-guide.md`
+- 平台兼容性说明：`docs/claude-code-compatibility.md`、`docs/codex-platform-architecture.md`
 - 治理基线检查清单：`docs/governance-checklist.md`
 - 故障处理 Runbook：`docs/operations-runbook.md`
 - Profile 扩展模板：`docs/profile-extension-template.md`
@@ -15,59 +18,73 @@
 
 ## 标准操作步骤
 
-### 1) 安装插件（每台机器一次）
+### 1) 克隆 Exoskeleton 仓库
 
 执行环境与目录：
 
 - 执行环境：`Windows PowerShell`
 - 执行目录：任意目录（建议工具目录）
 
-命令与作用：
-
 ```powershell
-# 作用：克隆插件仓库到本地
+# 作用：克隆治理框架仓库到本地
 git clone https://github.com/leikegeek/coding-exoskeleton.git
 
-# 作用：进入插件仓库根目录，后续安装/验证命令都在这里执行
+# 作用：进入仓库根目录，后续安装/验证命令都在这里执行
 cd .\coding-exoskeleton
-
-# 作用：安装插件到 Cursor 本地插件目录
-.\install.ps1
 ```
 
 已有仓库（可选）：
 
-- 执行环境：`Windows PowerShell`
-- 执行目录：已克隆的 `coding-exoskeleton` 仓库根目录
-
 ```powershell
 # 作用：拉取远端最新代码（快进更新）
 git pull --ff-only
-
-# 作用：按最新代码重新安装插件
-.\install.ps1
 ```
 
-可选验证：
+### 2) 选择平台安装
 
-- 执行环境：`Windows PowerShell`
-- 执行目录：`coding-exoskeleton` 仓库根目录
+#### Cursor 安装（每台机器一次）
 
 ```powershell
-# 作用：验证插件目录与组件完整性
-.\verify.ps1 -PluginRoot "$env:USERPROFILE\.cursor\plugins\local\coding-exoskeleton"
+# 作用：安装到 Cursor 本地插件目录，并写入用户级 hooks 配置
+.\platforms\cursor\install.ps1
+
+# 作用：验证 Cursor 插件目录与组件完整性
+.\platforms\cursor\verify.ps1 -PluginRoot "$env:USERPROFILE\.cursor\plugins\local\coding-exoskeleton"
 ```
 
-### 2) 重启 Cursor
+安装完成后重启 Cursor，插件的 `skills` / `rules` / `commands` / `agents` 自动加载。
 
-重启后，插件的 `skills` / `rules` / `commands` / `agents` 自动加载。
+#### Claude Code 安装（每个业务项目一次）
+
+```powershell
+# 作用：安装到目标业务项目 .claude/ 目录，并写入项目级 settings.json hooks 配置
+.\platforms\claude\install-claude.ps1 -ProjectRoot "C:\path\to\your-project"
+
+# 作用：验证目标业务项目中的 Claude Code 资产完整性
+.\platforms\claude\verify-claude.ps1 -ProjectRoot "C:\path\to\your-project"
+```
+
+Claude Code 安装细节见 `docs/claude-code-guide.md`。
+
+#### Codex 安装（每个业务项目一次）
+
+```powershell
+# 作用：安装到目标业务项目 .agents/、.codex/ 和 repo-local plugin marketplace
+.\platforms\codex\install-codex.ps1 -ProjectRoot "C:\path\to\your-project"
+
+# 作用：验证目标业务项目中的 Codex skills、references、agents、rules、hooks 和 plugin bundle
+.\platforms\codex\verify-codex.ps1 -ProjectRoot "C:\path\to\your-project"
+```
+
+安装完成后重启 Codex 或重新打开项目，使用 `/hooks` 审查并信任项目 hooks；Codex 工作流入口使用技能形式，例如 `$exoskeleton-start`、`$exoskeleton-code`、`$exoskeleton-audit`。Codex 安装细节见 `docs/codex-user-guide.md`。
 
 ### 3) 在业务项目中开始使用
 
 执行环境与目录：
 
-- 执行环境：`Cursor 对话框`（不是 PowerShell）
-- 执行目录：业务项目根目录（在 Cursor 中打开该项目）
+- Cursor：在 `Cursor 对话框` 执行（不是 PowerShell），业务项目根目录需在 Cursor 中打开
+- Claude Code：在业务项目根目录执行 `claude` 后，在 Claude Code 对话中输入命令
+- Codex：在业务项目根目录打开 Codex 后，通过 `$exoskeleton-*` 技能启动对应流程
 
 命令与作用：
 
@@ -87,28 +104,42 @@ git pull --ff-only
 # 作用：只读审计 GitLab MR、commit 或本地 diff
 /audit https://gitlab.example.com/group/project/-/merge_requests/123
 
+# 作用：对项目、模块、场景或本地 diff 输出标准性能分析报告
+/performance 订单列表首屏慢
+
 # 作用：查看 hooks 审计统计与治理指标
 /report
 ```
 
-首次在项目中使用会自动引导安装 Hooks 与生成 `AGENTS.md`。
+Codex 中对应技能示例：
+
+```text
+$exoskeleton-start SV-34577 需求描述或需求文档
+$exoskeleton-code SV-34577 @docs/design/SV-34577-tech-design.md
+$exoskeleton-audit https://gitlab.example.com/group/project/-/merge_requests/123
+$exoskeleton-performance 订单列表首屏慢
+```
+
+首次在项目中使用会引导生成 `AGENTS.md`。Hooks 配置由平台安装器完成：Cursor 使用用户级 `~/.cursor/hooks.json`，Claude Code 使用项目级 `.claude/settings.json`，Codex 使用项目级 `.codex/hooks.json` 并需要在 `/hooks` 中审查信任。
 
 当前内置 Profile：`cola-java`、`frontend-vue3`、`frontend-react-umi`。前端项目会叠加 `frontend-common`，后端项目会叠加 `backend-common`；不匹配的专项 skills/rules 应跳过。
 
 `/init` 也会可选引导配置个人作者信息，用于新建代码文件的作者注释（如 Java `@author`）。该配置保存到用户目录：
 
 ```text
-~/.cursor/coding-exoskeleton/user-config.json
+~/.exoskeleton/user-config.json
 ```
 
-该文件不在业务项目目录内，不会进入代码仓库；作者信息也不会写入 `AGENTS.md` 或 `.cursor/harness-config.json`。
+该文件不在业务项目目录内，不会进入代码仓库；作者信息也不会写入 `AGENTS.md` 或 harness 项目配置。历史路径 `~/.cursor/coding-exoskeleton/user-config.json` 仅作为兼容读取路径。
 
 如果业务项目已经存在 `AGENTS.md`，`/init` 会额外提供「仅配置个人作者信息」选项；选择该项只检查/生成全局 `user-config.json`，不会改写项目画像或项目配置。选择「跳过」则不会配置作者信息。
 
 已有业务仓库（可选）：
 
-- 若你已在本地有业务仓库，只需在 Cursor 中直接打开该业务仓库目录，然后执行上述 `/start` 或 `/code`。
-- 无需在业务仓库中再执行 `install.ps1`（安装脚本只在插件仓库执行）。
+- Cursor：若你已在本地有业务仓库，只需在 Cursor 中直接打开该业务仓库目录，然后执行上述 `/start` 或 `/code`。
+- Claude Code：进入业务仓库目录运行 `claude`，然后执行上述 `/start` 或 `/code`。
+- Codex：在业务仓库目录打开 Codex，然后执行上述 `$exoskeleton-start` 或 `$exoskeleton-code`。
+- 安装脚本均在 Exoskeleton 仓库中执行；Claude Code / Codex 安装时通过 `-ProjectRoot` 指向业务仓库。
 
 ## 核心流程图
 
@@ -119,13 +150,14 @@ flowchart TD
         CMD_START["/start — 从需求开始"]
         CMD_CODE["/code — 从技术方案编码"]
         CMD_AUDIT["/audit — 独立代码审计"]
+        CMD_PERF["/performance — 独立性能分析"]
         CMD_DELIVER["/deliver — 补救交付文档"]
         CMD_REPORT["/report — 查看统计"]
     end
 
     subgraph preCheck [预检层: 自动执行]
-        PC_Hooks{"全局 Hooks 配置可用?"}
-        PC_InstallHooks["提示执行 install.ps1 安装 Hooks"]
+        PC_Hooks{"平台 Hooks 配置可用?"}
+        PC_InstallHooks["提示执行对应平台安装脚本"]
         PC_Agents{"AGENTS.md 存在?"}
         PC_Init["执行 /init 生成项目画像"]
         PC_Profile["解析 techStack"]
@@ -152,6 +184,7 @@ flowchart TD
 
     subgraph standalone [独立命令]
         AUDIT_FLOW["PR/MR、commit 或本地 diff<br/>AuditContext → audit-reviewer<br/>输出独立审计报告"]
+        PERF_FLOW["项目、模块、场景或本地 diff<br/>performance-analysis<br/>输出标准性能分析报告"]
         DELIVER_FIX["从 git diff 补救生成三份交付文档"]
         REPORT_GEN["生成审计统计报告"]
     end
@@ -160,6 +193,7 @@ flowchart TD
     CMD_START --> PC_Hooks
     CMD_CODE --> PC_Hooks
     CMD_AUDIT --> PC_Agents
+    CMD_PERF --> PC_Agents
     CMD_DELIVER --> DELIVER_FIX
     CMD_REPORT --> REPORT_GEN
 
@@ -178,6 +212,7 @@ flowchart TD
     PC_Ready -->|"/code"| B_Understand --> B_Prepare
     B_Prepare --> B_Code --> B_Verify --> B_Deliver
     PC_Ready -->|"/audit"| AUDIT_FLOW
+    PC_Ready -->|"/performance"| PERF_FLOW
 ```
 
 > **读图要点**：`AGENTS.md.techStack` 决定当前激活的 `shared + family-common + profile` 规则/技能集合；需求进入 A2 前先过完整性门禁；默认技术方案只保留 4 个核心部分，并必须写清代码实施位置；只有用户明确要求架构设计方案时才使用 8 部分架构模板。A2 自评/审查后**必须先**经用户确认硬门禁；B2 每个任务/子代理组都有 Record 门禁；B3 为 V1~V5 验证循环，其中 V2 测试命令后会启动 `unit-test-reviewer` 独立审视单测是否覆盖需求、技术设计和生产逻辑，V4 通过 `audit-context-intake → audit-reviewer` 做统一审计，V5 只检查当前激活规则，最终只交付三份正式文档。`/audit` 是独立只读审计入口，同样复用 `AuditContext → audit-reviewer` 内核，但输出 `docs/audit/*-audit-report.md`，不进入 `/code` 交付流水线（详见 `docs/plugin-core-workflow.md`）。
@@ -188,12 +223,15 @@ flowchart TD
 - `/start`：需求到技术方案（流水线 A）
 - `/code`：技术方案到交付（流水线 B）
 - `/audit`：独立审计 GitLab MR、commit 或本地 diff；优先使用 Git 可获取的变更和完整代码
+- `/performance`：独立性能分析项目、模块、场景或本地 diff，输出标准性能分析报告
 - `/deliver`：补救生成交付文档
 - `/report`：查看治理统计
 
+Codex 中使用等价技能：`$exoskeleton-init`、`$exoskeleton-start`、`$exoskeleton-code`、`$exoskeleton-audit`、`$exoskeleton-performance`、`$exoskeleton-deliver`、`$exoskeleton-report`。
+
 命令机制、门禁、产物细节统一查看：`docs/plugin-core-workflow.md`
 
-## 新增机制速览（v1.0.3）
+## 核心机制速览
 
 | 机制 | 作用 | 触发时机 |
 |------|------|---------|
@@ -201,6 +239,7 @@ flowchart TD
 | 结构化验证循环 | 五维度门禁（构建/测试/性能/统一审计/规范），增量重验 | B3 审查阶段，由 `verification-loop` skill 编排 |
 | 单元测试审视 | 测试命令后由独立审视代理检查单测是否真实覆盖需求、技术设计和生产逻辑，禁止降标准通过 | B3 / V2 测试验证，由 `unit-test-reviewer` agent 执行 |
 | 独立统一审计 | 对 GitLab MR、commit 或本地 diff 做只读审计，使用与 `/code` B3 相同的 `AuditContext → audit-reviewer` 审计内核 | `/audit` 入口 |
+| 独立性能分析 | 对项目、模块、场景或本地 diff 做只读性能分析，复用 `performance-analysis` 并输出标准性能分析报告 | `/performance` 入口 |
 | 专职子代理 | 架构审查、TDD 检查、构建修复、单测审视、统一代码审计、文档检查 | A2（architect）、B2（tdd-guide）、B3（build-error-resolver / unit-test-reviewer / audit-reviewer）、B4（doc-updater） |
 | 实施进度追踪 | 技术方案文档中自动维护进度段落，支持跨会话续做 | B1 初始化、B2 每个任务完成后更新、B3/B4 更新状态 |
 | 轻量技术方案 | 普通需求默认 4 段式；仅明确要求架构设计时使用 8 段架构模板 | A2 技术方案设计 |

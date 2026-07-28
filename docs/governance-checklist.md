@@ -1,15 +1,15 @@
 # Exoskeleton 治理基线检查清单
 
-用于在 `/start`、`/code`、`/audit` 和交付前做快速一致性检查，确保流程、约束、产物和审计都处于可控状态。
+用于在 `/start`、`/code`、`/audit`、`/performance` 和交付前做快速一致性检查，确保流程、约束、产物和审计都处于可控状态。
 
 ## A. 会话启动检查（必检）
 
 - [ ] 当前任务已声明 `SV-ID`（如 `SV-34577`）
 - [ ] 当前模式已明确：设计模式 / 编码模式
 - [ ] 项目根目录存在 `AGENTS.md`
-- [ ] `.cursor/harness-config.json` 存在且 `techStack` 正确
+- [ ] `.exoskeleton/harness-config.json` 存在且 `techStack` 正确（历史项目可兼容读取 `.cursor/harness-config.json`）
 - [ ] 目标项目已安装 Hooks（至少 Standard 档位）
-- [ ] 如团队要求作者注释，个人作者配置已位于 `~/.cursor/coding-exoskeleton/user-config.json`，未写入业务仓库
+- [ ] 如团队要求作者注释，个人作者配置已位于 `~/.exoskeleton/user-config.json`（legacy `~/.cursor/coding-exoskeleton/user-config.json` 仅兼容读取），未写入业务仓库
 
 ## B. 规则与技能激活检查
 
@@ -85,7 +85,16 @@
 - [ ] 独立审计报告已保存到 `docs/audit/*-audit-report.md`，未生成 `/code` 交付三件套
 - [ ] 未在用户明确要求修复前修改业务代码、创建分支、提交 commit 或向远端写入评论
 
-## I. Hook 失败策略矩阵
+## I. 独立性能分析检查（/performance）
+
+- [ ] `/performance` 已建立只读任务契约，默认不写入业务代码
+- [ ] 分析对象已明确：项目整体、指定模块、接口、页面、操作路径或本地 diff
+- [ ] 已读取 `performance-analysis`，并按 `AGENTS.md.techStack` 叠加当前 family-common/profile 性能 skill
+- [ ] 已给出分析对象、证据与基线、瓶颈判断、优化优先级、验证方式和回滚策略
+- [ ] 无证据时仅输出排查计划和待采集指标，未伪装成确定瓶颈结论
+- [ ] 高风险结构调整、压测外部服务、批量请求或可能影响环境稳定性的动作已先获得用户明确确认
+
+## J. Hook 失败策略矩阵
 
 以下列出各 Hook 在异常（脚本错误、解析失败等）时的行为策略，团队需对此知情：
 
@@ -101,7 +110,7 @@
 
 ## J. 可观测性与审计检查
 
-- [ ] `.cursor/hooks/logs/harness-events.jsonl` 持续记录
+- [ ] 治理事件日志持续记录（优先 `.exoskeleton/hooks/logs/`，兼容 `.cursor/hooks/logs/`）
 - [ ] 可查看模式分布、拦截事件、编辑分布
 - [ ] 可识别近期失败模式并触发规则/流程修正
 

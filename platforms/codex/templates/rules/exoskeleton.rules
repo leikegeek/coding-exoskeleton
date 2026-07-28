@@ -1,0 +1,61 @@
+# Exoskeleton Codex approval policy.
+#
+# These rules cover stable shell-command governance that Codex can enforce
+# before a command runs outside the sandbox. Broader behavioral rules remain in
+# .agents/references/rules and are loaded by Exoskeleton workflow skills.
+
+prefix_rule(
+    pattern = ["rm", "-rf"],
+    decision = "forbidden",
+    justification = "Recursive force delete is blocked. Use a scoped, reviewed cleanup command instead.",
+    match = ["rm -rf build"],
+)
+
+prefix_rule(
+    pattern = ["rm", "-fr"],
+    decision = "forbidden",
+    justification = "Recursive force delete is blocked. Use a scoped, reviewed cleanup command instead.",
+    match = ["rm -fr build"],
+)
+
+prefix_rule(
+    pattern = ["git", "reset", "--hard"],
+    decision = "forbidden",
+    justification = "Destructive history/worktree reset is blocked. Ask the user for an explicit recovery plan instead.",
+    match = ["git reset --hard", "git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+    pattern = ["git", "clean"],
+    decision = "prompt",
+    justification = "Cleaning untracked files can delete local work; require explicit approval.",
+    match = ["git clean -fd", "git clean -fdx"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "--force"],
+    decision = "forbidden",
+    justification = "Force push can rewrite shared history. Use an explicit user-approved recovery workflow instead.",
+    match = ["git push --force origin feature/example"],
+)
+
+prefix_rule(
+    pattern = ["git", "push", "-f"],
+    decision = "forbidden",
+    justification = "Force push can rewrite shared history. Use an explicit user-approved recovery workflow instead.",
+    match = ["git push -f origin feature/example"],
+)
+
+prefix_rule(
+    pattern = ["npm", "publish"],
+    decision = "prompt",
+    justification = "Publishing packages is a release action and requires user approval.",
+    match = ["npm publish"],
+)
+
+prefix_rule(
+    pattern = ["mvn", "deploy"],
+    decision = "prompt",
+    justification = "Deploying artifacts is a release action and requires user approval.",
+    match = ["mvn deploy"],
+)

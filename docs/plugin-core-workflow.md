@@ -9,15 +9,18 @@
 - `docs/governance-checklist.md`：治理基线检查清单，用于启动前、交付前快速自检。
 - `docs/operations-runbook.md`：故障排查与恢复 Runbook。
 - `docs/profile-extension-template.md`：技术栈 Profile 扩展模板。
+- `docs/claude-code-guide.md`：Claude Code 平台安装与使用指南。
+- `docs/codex-user-guide.md`：Codex 平台安装与使用指南。
+- `docs/claude-code-compatibility.md`、`docs/codex-platform-architecture.md`：平台兼容性与 Codex 架构说明。
 
 **可执行契约（实装来源）**：本仓库以 Markdown 资产形式交付治理逻辑，**以下路径为行为与判定的权威正文**（随代码/资产迭代而变）：
 
 | 类型 | 路径 | 作用 |
 |------|------|------|
-| 斜杠命令 | `commands/*.md` | 各入口（如 `/code`、`/start`）的阶段步骤、门禁、子工具调用约定 |
-| 规则 | `rules/**/*.mdc` | 始终或按 glob 启用的硬约束（任务契约、子代理编排、编码纪律等） |
-| 技能 | `skills/**/SKILL.md` | 各阶段可复用的工作流与编排（如 `verification-loop`、`coding`） |
-| 子代理 | `agents/*.md` | 子代理角色、上下文边界、输入输出格式 |
+| 斜杠命令 | `src/commands/*.md` | 各入口（如 `/code`、`/start`）的阶段步骤、门禁、子代理调用约定；平台侧生成到对应平台产物目录 |
+| 规则 | `src/rules/**/*.mdc` | 始终或按 techStack/profile 启用的硬约束（任务契约、子代理编排、编码纪律等） |
+| 技能 | `src/skills/**/SKILL.md` | 各阶段可复用的工作流与编排（如 `verification-loop`、`coding`） |
+| 子代理 | `src/agents/*.md` | 子代理角色、上下文边界、输入输出格式；平台侧生成到对应平台产物目录 |
 
 **冲突处理**：若本文件与上表中任一路径的表述不一致，**以上述实装文件为准**；更新流程时应先改命令/规则/技能/子代理文件，再同步本总述。
 
@@ -27,7 +30,7 @@
 
 ### 什么是 Exoskeleton
 
-Exoskeleton 是一套面向企业级项目的 **AI 编程治理框架**，以 Cursor IDE 插件的形式交付。它解决的核心问题是：
+Exoskeleton 是一套面向企业级项目的 **AI 编程治理框架**。V2 以 `src/` 作为统一核心资产，通过 `platforms/cursor/`、`platforms/claude/` 与 `platforms/codex/` 适配 Cursor IDE、Claude Code CLI 和 Codex。它解决的核心问题是：
 
 > **如何让 AI 在企业项目中安全、规范、可追溯地交付需求。**
 
@@ -56,7 +59,7 @@ Layer 2: Rules（规范约束层）
          ↑ 编码规范、架构/组件边界、命名规范、性能与安全约束
 Layer 1: Skills（能力指导层）
          ↑ 需求分析、方案设计、方案评审、编码实施、测试设计、交付
-Layer 0: Cursor IDE + AI 模型（基础能力）
+Layer 0: Cursor IDE / Claude Code CLI / Codex + AI 模型（基础能力）
 ```
 
 - **Skills** 告诉 AI "怎么做"：如何分析需求、如何设计技术方案、如何写测试
@@ -65,113 +68,60 @@ Layer 0: Cursor IDE + AI 模型（基础能力）
 
 ---
 
-## 二、插件结构
+## 二、V2 代码结构
 
 ### 目录布局
 
 ```
 coding-exoskeleton/
 ├── README.md
-├── install.ps1                        # 安装入口：写入全局 hooks 配置
-├── verify.ps1                         # 本地校验脚本
+├── CLAUDE.md                          # 本开发仓库的 Claude Code 导航入口
+├── src/                               # 统一核心资产（权威源，唯一修改点）
+│   ├── commands/                      # 7 个流程入口
+│   ├── agents/                        # 专职子代理定义
+│   ├── rules/                         # 分层规则：shared / family-common / profile
+│   ├── skills/                        # 分层技能：shared / family-common / profile
+│   ├── hooks/                         # 平台无关 Hook 策略与公共函数
+│   └── profiles/                      # 技术栈 Profile 定义（扩展预留）
 │
-├── .cursor-plugin/
-│   └── plugin.json                    # 插件清单文件
-│
-├── .cursor/
-│   ├── harness-state.json             # 运行态状态文件（会话中更新）
-│   └── hooks/logs/                    # 审计日志目录（运行态生成）
-│
-├── skills/
-│   ├── shared/                        # 所有项目通用
-│   │   ├── requirement-intake/        # 需求录入与解析
-│   │   ├── tech-design/               # 技术方案设计
-│   │   ├── design-review/             # 方案自评审
-│   │   ├── implementation-planning/   # 实施计划与任务拆解
-│   │   ├── coding/                    # 编码实施
-│   │   ├── testing/                   # 测试策略与执行
-│   │   ├── delivery/                  # 交付物格式化与汇总
-│   │   ├── performance-analysis/      # 性能分析
-│   │   ├── context-compaction/        # 战略性上下文压缩
-│   │   ├── audit-context-intake/       # 统一审计上下文接入
-│   │   ├── verification-loop/         # 结构化验证循环
-│   │   └── project-profiling/         # 项目画像生成
+├── platforms/                         # 平台适配层（从 src 生成/包装）
+│   ├── cursor/
+│   │   ├── .cursor-plugin/plugin.json # Cursor 插件清单
+│   │   ├── hooks/                     # Cursor Hook 脚本
+│   │   ├── install.ps1                # Cursor 安装入口
+│   │   └── verify.ps1                 # Cursor 校验入口
 │   │
-│   ├── backend-common/                # 后端项目通用能力
-│   │
-│   ├── cola-java/                     # COLA Java 项目特有
-│   │   ├── cola-architecture/         # COLA 架构设计指导
-│   │   ├── cola-naming/               # COLA 命名规范指导
-│   │   └── common-components/         # 公共组件使用指南
-│   ├── frontend-common/               # 前端项目通用能力
-│   ├── frontend-vue3/                 # Vue 3 前端项目专项能力
-│   ├── frontend-react-umi/            # React Umi 前端项目专项能力
-│   ├── {profile-id}/                  # 按需扩展（目录名即 Profile ID）
-│   └── ...
-│
-├── rules/
-│   ├── shared/                        # 通用规则
-│   │   ├── task-contract.mdc          # 任务契约规则
-│   │   ├── work-mode-policy.mdc       # 工作模式策略规则
-│   │   ├── context-compaction.mdc     # 战略性上下文压缩规则
-│   │   ├── subagent-orchestration.mdc # 子代理编排规则
-│   │   ├── performance.mdc            # 通用性能规则
-│   │   └── coding-discipline.mdc      # 编码纪律规则（最小变更、不投机扩展）
-│   │
-│   ├── backend-common/                # 后端通用规则
-│   │
-│   ├── cola-java/                     # COLA Java 项目特有规则
-│   │   ├── cola-architecture.mdc      # COLA 分层架构规则
-│   │   ├── java-naming.mdc            # Java 命名规范
-│   │   ├── transaction-executor.mdc   # 事务管理规则
-│   │   ├── mq-consumer.mdc            # MQ 消费规则
-│   │   └── performance.mdc            # 项目特有性能约束
-│   ├── frontend-common/               # 前端通用规则
-│   ├── frontend-vue3/                 # Vue 3 项目规则
-│   ├── frontend-react-umi/            # React Umi 项目规则
-│   ├── {profile-id}/                  # 按需扩展（结构同上）
-│   └── ...
-│
-├── commands/                          # 用户可见的斜杠命令
-│   ├── init.md                        # /init  → 项目初始化
-│   ├── start.md                       # /start → 流水线 A 入口
-│   ├── code.md                        # /code  → 流水线 B 入口
-│   ├── audit.md                       # /audit → 独立 PR/MR 或 diff 审计
-│   ├── deliver.md                     # /deliver → 交付物补救生成（可选）
-│   └── report.md                      # /report → 查看统计报告
-│
-├── agents/                            # 子代理定义
-│   ├── audit-reviewer.md              # 统一代码审计子代理
-│   ├── code-reviewer.md               # 旧代码评审代理名（兼容入口）
-│   ├── security-reviewer.md           # 旧安全审计代理名（兼容入口）
-│   ├── unit-test-reviewer.md           # 单元测试审视子代理
-│   ├── build-error-resolver.md        # 构建错误修复子代理
-│   ├── architect.md                   # 架构决策审查子代理
-│   ├── design-reviewer.md             # 方案独立评审子代理
-│   ├── tdd-guide.md                   # TDD 引导子代理
-│   ├── coding-subagent.md             # 编码执行子代理契约
-│   └── doc-updater.md                 # 文档完整性子代理
-│
-├── hooks/                             # Hook 脚本（hooks.json 由 install.ps1 写入用户目录）
-│   ├── common.ps1
-│   ├── before-submit-prompt.ps1
-│   ├── before-submit-prompt-lite.ps1
-│   ├── before-shell-execution.ps1
-│   ├── after-file-edit.ps1
-│   ├── pre-tool-use.ps1
-│   └── harness-report.ps1
+│   ├── claude/
+│       ├── commands/                  # Claude Code 命令包装（含 frontmatter）
+│       ├── agents/                    # Claude Code 子代理包装（含 frontmatter）
+│       ├── hooks/                     # Claude Code Hook 适配器
+│       ├── templates/                 # settings.json / CLAUDE.md / skill index 模板
+│       ├── install-claude.ps1         # Claude Code 项目级安装入口
+│       └── verify-claude.ps1          # Claude Code 项目级校验入口
+│   └── codex/
+│       ├── workflow-skills/           # Codex 工作流 skill 包装
+│       ├── hooks/                     # Codex Hook 适配器
+│       ├── templates/                 # hooks / rules / plugin / marketplace 模板
+│       ├── install-codex.ps1          # Codex 项目级安装入口
+│       └── verify-codex.ps1           # Codex 项目级校验入口
 │
 └── docs/
     ├── plugin-core-workflow.md        # 机制总述
     ├── user-guide.md                  # 用户手册
+    ├── claude-code-guide.md           # Claude Code 用户指南
+    ├── claude-code-compatibility.md   # Cursor / Claude Code 兼容性说明
+    ├── codex-user-guide.md            # Codex 用户指南
+    ├── codex-platform-architecture.md # Codex 平台架构说明
     ├── governance-checklist.md        # 治理基线检查清单
     ├── operations-runbook.md          # 故障处理 Runbook
-    └── profile-extension-template.md  # Profile 扩展模板
+    ├── profile-extension-template.md  # Profile 扩展模板
+    ├── v2-architecture.md             # V2 Cursor / Claude Code 历史架构设计
+    └── codex-platform-architecture.md # Codex 平台架构设计
 ```
 
 ### 共享 + 项目特有的组合机制
 
-插件内的 skills 和 rules 按共享层、family-common 层和 profile 层组合使用：
+`src/skills` 和 `src/rules` 按共享层、family-common 层和 profile 层组合使用，平台安装时复制或包装为对应平台格式：
 
 - **shared/**：所有项目通用的流水线能力和治理规则（需求分析、方案设计、编码记录、验证、交付等）
 - **backend-common/**：后端技术栈共享能力，与具体后端 profile 组合使用
@@ -180,28 +130,28 @@ coding-exoskeleton/
 
 #### 技术栈 Profile 机制
 
-Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件；注册不等于执行。技术栈的"选择性激活"通过以下机制实现：
+平台安装后会注册对应平台格式的 skills 和 rules；注册不等于执行。技术栈的"选择性激活"通过以下机制实现：
 
 1. **`/init` 命令**（或首次使用 `/start`、`/code` 时自动引导）扫描项目，推断技术栈，生成 `AGENTS.md`（项目画像文件，保存在业务项目根目录）
-2. `AGENTS.md` 的 frontmatter 中声明 `techStack` 字段（如 `cola-java`），同时写入 `.cursor/harness-config.json`
+2. `AGENTS.md` 的 frontmatter 中声明 `techStack` 字段（如 `cola-java`），同时写入 harness 项目配置（优先 `.exoskeleton/`，兼容 `.cursor/`）
 3. 主流程根据 `techStack` 计算当前 family-common：后端 profile 使用 `backend-common`，前端 profile 使用 `frontend-common`，自定义 profile 只使用 `shared`
 4. 项目特有的 skills（如 `cola-architecture`、`vue3-component-delivery`、`react-umi-feature-delivery`）在执行前先读取 `AGENTS.md`，检查技术栈是否匹配，不匹配则自动跳过
-5. 项目特有的 rules 先通过 `globs` 限制候选文件，再由规则正文要求核对 `AGENTS.md.techStack`；V5 规范验证只纳入 `rules/shared/*` + 当前 family-common + 当前 profile 对应规则，禁止跨技术栈套用
+5. 项目特有的 rules 由规则正文要求核对 `AGENTS.md.techStack`；V5 规范验证只纳入 `src/rules/shared/*` + 当前 family-common + 当前 profile 对应规则，禁止跨技术栈套用
 
 **预设 Profile**：
 
 | Profile | 匹配条件 | 激活的专项内容 |
 |---------|----------|---------------|
-| `cola-java` | `pom.xml` + COLA 依赖 + COLA 目录结构 | `skills/backend-common/*` + `skills/cola-java/*` + `rules/backend-common/*` + `rules/cola-java/*` |
-| `frontend-vue3` | `package.json` + `vue` + `vite` / `@vitejs/plugin-vue` | `skills/frontend-common/*` + `skills/frontend-vue3/*` + `rules/frontend-common/*` + `rules/frontend-vue3/*` |
-| `frontend-react-umi` | `package.json` + `react` + `umi` / `umi-plugin-react` + Umi 目录结构 | `skills/frontend-common/*` + `skills/frontend-react-umi/*` + `rules/frontend-common/*` + `rules/frontend-react-umi/*` |
-| 自定义 | 用户手动描述 | 仅 `skills/shared/*` + `rules/shared/*` |
+| `cola-java` | `pom.xml` + COLA 依赖 + COLA 目录结构 | `src/skills/backend-common/*` + `src/skills/cola-java/*` + `src/rules/backend-common/*` + `src/rules/cola-java/*` |
+| `frontend-vue3` | `package.json` + `vue` + `vite` / `@vitejs/plugin-vue` | `src/skills/frontend-common/*` + `src/skills/frontend-vue3/*` + `src/rules/frontend-common/*` + `src/rules/frontend-vue3/*` |
+| `frontend-react-umi` | `package.json` + `react` + `umi` / `umi-plugin-react` + Umi 目录结构 | `src/skills/frontend-common/*` + `src/skills/frontend-react-umi/*` + `src/rules/frontend-common/*` + `src/rules/frontend-react-umi/*` |
+| 自定义 | 用户手动描述 | 仅 `src/skills/shared/*` + `src/rules/shared/*` |
 
 > **扩展说明**：`spring-boot`、`react-ts`、`go-service` 等 Profile 可按 `docs/profile-extension-template.md` 模板继续扩展。
 
 #### AGENTS.md 的作用
 
-`AGENTS.md` 是项目画像文件，遵循 Cursor 生态约定放在业务项目根目录。它的作用：
+`AGENTS.md` 是 Cursor、Claude Code 与 Codex 共用的项目画像权威文件，放在业务项目根目录。它的作用：
 
 - **持久化项目上下文**：避免每次会话都重新扫描项目，节省 token
 - **技术栈声明**：决定哪些专项 skills/rules 被激活
@@ -210,15 +160,15 @@ Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件；�
 
 #### 全局个人配置
 
-作者名、邮箱等开发者个人信息不属于项目画像，不写入 `AGENTS.md`，也不写入业务项目的 `.cursor/harness-config.json`。`/init` 可选引导用户生成全局个人配置：
+作者名、邮箱等开发者个人信息不属于项目画像，不写入 `AGENTS.md`，也不写入业务项目的 harness 配置。`/init` 可选引导用户生成全局个人配置：
 
 ```text
-~/.cursor/coding-exoskeleton/user-config.json
+~/.exoskeleton/user-config.json
 ```
 
-该文件位于用户目录，业务仓库不会提交。编码阶段如需生成作者注释（如 Java 新增类的 `@author`），读取优先级为：`author.javaDocAuthor` → `author.name` → `git config --global user.name`。修改已有文件时不新增或改写作者注释；commit message 默认不追加作者说明，除非全局配置显式开启且团队规范要求。
+该文件位于用户目录，业务仓库不会提交。编码阶段如需生成作者注释（如 Java 新增类的 `@author`），读取优先级为：`~/.exoskeleton/user-config.json` → legacy `~/.cursor/coding-exoskeleton/user-config.json` → `git config --global user.name`。配置字段优先级为 `author.javaDocAuthor` → `author.name`。修改已有文件时不新增或改写作者注释；commit message 默认不追加作者说明，除非全局配置显式开启且团队规范要求。
 
-该配置入口独立于项目画像。即使业务项目已有 `AGENTS.md`，`/init` 也应先展示全局作者配置状态，并允许用户选择「仅配置个人作者信息」；该路径只写用户目录，不改写 `AGENTS.md` 或 `.cursor/harness-config.json`。
+该配置入口独立于项目画像。即使业务项目已有 `AGENTS.md`，`/init` 也应先展示全局作者配置状态，并允许用户选择「仅配置个人作者信息」；该路径只写用户目录，不改写 `AGENTS.md` 或 harness 项目配置。
 
 ---
 
@@ -240,7 +190,7 @@ Cursor 加载插件时，会注册 `skills/` 和 `rules/` 下的所有文件；�
 
 ### 全局流程图
 
-下图展示了 Exoskeleton 的全部 6 个入口及其交互关系：
+下图展示了 Exoskeleton 的全部 7 个入口及其交互关系：
 
 ```mermaid
 flowchart TD
@@ -249,13 +199,14 @@ flowchart TD
         CMD_START["/start — 从需求开始"]
         CMD_CODE["/code — 从技术方案编码"]
         CMD_AUDIT["/audit — 独立代码审计"]
+        CMD_PERF["/performance — 独立性能分析"]
         CMD_DELIVER["/deliver — 补救交付文档"]
         CMD_REPORT["/report — 查看统计"]
     end
 
     subgraph preCheck [预检层: 自动执行]
-        PC_Hooks{"全局 Hooks 配置可用?"}
-        PC_InstallHooks["提示执行 install.ps1 安装 Hooks"]
+        PC_Hooks{"平台 Hooks 配置可用?"}
+        PC_InstallHooks["提示执行对应平台安装脚本"]
         PC_Agents{"AGENTS.md 存在?"}
         PC_Init["执行 /init 生成项目画像"]
         PC_Profile["解析 techStack"]
@@ -282,6 +233,7 @@ flowchart TD
 
     subgraph standalone [独立命令]
         AUDIT_FLOW["PR/MR、commit 或本地 diff<br/>默认只读审计接入"]
+        PERF_FLOW["项目、模块、场景或本地 diff<br/>performance-analysis<br/>输出标准性能分析报告"]
         DELIVER_FIX["从 git diff 补救生成三份交付文档"]
         REPORT_GEN["生成审计统计报告"]
     end
@@ -295,6 +247,7 @@ flowchart TD
     CMD_START --> PC_Hooks
     CMD_CODE --> PC_Hooks
     CMD_AUDIT --> PC_Agents
+    CMD_PERF --> PC_Agents
     CMD_DELIVER --> DELIVER_FIX
     CMD_REPORT --> REPORT_GEN
 
@@ -313,6 +266,7 @@ flowchart TD
     PC_Ready -->|"/code"| B_Understand --> B_Prepare
     B_Prepare --> B_Code --> B_Review --> B_Deliver
     PC_Ready -->|"/audit"| AUDIT_FLOW
+    PC_Ready -->|"/performance"| PERF_FLOW
     B_Review -->|"V4 local-flow"| AUDIT_CONTEXT
     AUDIT_FLOW -->|"gitlab-mr / local diff"| AUDIT_CONTEXT
     AUDIT_CONTEXT --> AUDIT_REVIEW
@@ -322,10 +276,11 @@ flowchart TD
 
 **图意说明（与实装一致）**：
 
-- **流水线 A**：`A1` 完成需求录入、完整性门禁和复杂度判定后，`A2` 根据判定结果分标准路径或轻量路径执行。标准路径包含数据规模澄清环节。方案落盘后委派 `design-reviewer` 子代理在独立上下文中评审（标准路径还可触发 `architect`）。评审完成后**必须先经过** `A_Gate` 用户确认硬门禁；**禁止**在评审结束当轮自动进入编码。用户**确认通过**后，先经 `A_Compact`（`context-compaction` 评估），再在 `A_Choice` 选择「继续」或「断开」；断开时执行完整性检查，未通过可选择补齐或标记为 draft。**仅当选择继续**且本会话衔接 B 时，才从 `B_Prepare` 起进入编码（与 `commands/start.md` 第三、四步一致）。
+- **流水线 A**：`A1` 完成需求录入、完整性门禁和复杂度判定后，`A2` 根据判定结果分标准路径或轻量路径执行。标准路径包含数据规模澄清环节。方案落盘后委派 `design-reviewer` 子代理在独立上下文中评审（标准路径还可触发 `architect`）。评审完成后**必须先经过** `A_Gate` 用户确认硬门禁；**禁止**在评审结束当轮自动进入编码。用户**确认通过**后，先经 `A_Compact`（`context-compaction` 评估），再在 `A_Choice` 选择「继续」或「断开」；断开时执行完整性检查，未通过可选择补齐或标记为 draft。**仅当选择继续**且本会话衔接 B 时，才从 `B_Prepare` 起进入编码（与 `src/commands/start.md` 第三、四步一致）。
 - **流水线 B**：`B2` 若进入编排模式，编码子代理 **组间默认串行**（逐组 Task 派发）；**仅当用户明确确认「允许并行」** 时，方可对无依赖的组同时派发（与 `commands/code.md` B2、`rules/shared/subagent-orchestration.mdc` 一致）。
 - **B3**：`verification-loop` 编排 **V1~V5**；其中 V2 测试命令完成后必须启动 `unit-test-reviewer` 独立审视单测覆盖质量；V4 通过 `audit-context-intake` 归一化为 `AuditContext(auditMode=local-flow)` 后启动 `audit-reviewer` 做统一审计，具体审计维度、Git 规范检查、注释/删除代码检查、评分和报告格式由 `agents/audit-reviewer.md` 统一定义。
 - **/audit**：独立审计入口，不进入编码交付流水线；它与 `/code` B3 共用 `audit-context-intake → audit-reviewer` 审计内核，差异只在信息来源、`auditMode`、证据可信度和输出形态。`/audit` 默认只读，输出 `docs/audit/*-audit-report.md`。
+- **/performance**：独立性能分析入口，不进入编码交付流水线；它与 `/code` B3 性能检查共用 `performance-analysis`，按当前 techStack 叠加 family-common/profile 性能 skill，默认只读并输出标准性能分析报告。
 - **规则激活**：所有 rules/skills 会被插件注册，但流水线只主动使用 `shared + 当前 family-common + 当前 profile`。非当前 `techStack` 的专项 skill 必须跳过；V5 规范验证禁止把其它技术栈规则纳入判定。
 
 ### 各阶段涉及的组件总览
@@ -338,9 +293,10 @@ flowchart TD
 | **/code B0** | - | `task-contract`, `work-mode-policy` | `before-submit-prompt-lite` | - |
 | **/code B1** | `implementation-planning`, `testing`, `coding` | `task-contract` | `before-submit-prompt-lite` | - |
 | **/code B2** | `coding` + 当前 family-common/profile 编码类 skill* | `task-contract`, `coding-discipline`, `subagent-orchestration`, `performance`(shared) + 当前 family-common/profile 规则* | `before-shell-execution`, `after-file-edit`, `pre-tool-use`** | `coding-subagent`（编排模式）, `tdd-guide` |
-| **/code B3** | `verification-loop`, `testing`, `performance-analysis`, `audit-context-intake`, `delivery` | V5 只对照 `rules/shared/*` + 当前 family-common + 当前 profile 与项目 lint | `after-file-edit` | V1 失败时：`build-error-resolver`；V2 测试后：`unit-test-reviewer`；V4 统一审计：`audit-reviewer` |
+| **/code B3** | `verification-loop`, `testing`, `performance-analysis`, `audit-context-intake`, `delivery` | V5 只对照 `src/rules/shared/*` + 当前 family-common + 当前 profile 与项目 lint | 编辑审计 Hook | V1 失败时：`build-error-resolver`；V2 测试后：`unit-test-reviewer`；V4 统一审计：`audit-reviewer` |
 | **/code B4** | `delivery` | - | - | `doc-updater` |
 | **/audit** | `audit-context-intake` | `task-contract`, `work-mode-policy` | - | `audit-reviewer` |
+| **/performance** | `performance-analysis` + 当前 family-common/profile 性能 skill* | `task-contract`, `work-mode-policy`, `performance` + 当前 family-common/profile 性能规则* | - | - |
 | **/deliver** | `delivery` | - | - | - |
 | **/report** | - | - | - | - |
 
@@ -668,8 +624,8 @@ V4 先读取 `audit-context-intake` skill，把本地 `/code` 产物归一化为
 
 下表展示了每个 Hook 在各入口/阶段中的具体行为：
 
-| Hook | /init | /start (A1-A3) | /code (B0) | /code (B1-B4) | /deliver | /report |
-|------|:-----:|:---------------:|:----------:|:--------------:|:--------:|:-------:|
+| Hook | /init | /start (A1-A3) | /code (B0) | /code (B1-B4) | /performance | /deliver | /report |
+|------|:-----:|:---------------:|:----------:|:--------------:|:------------:|:--------:|:-------:|
 | `after-file-edit` | - | 审计文档编辑 | 审计文档编辑 | 审计代码编辑 | 审计 | - |
 | `before-shell-execution` | - | 拦截构建/提交 | 拦截构建/提交 | 允许构建/测试, 拦截危险命令 | 允许 | - |
 | `before-submit-prompt-lite` | - | 记录 design 模式 | 记录模式切换 | 记录 coding 模式 | - | - |
@@ -677,7 +633,7 @@ V4 先读取 `audit-context-intake` skill，把本地 `/code` 产物归一化为
 
 说明：
 - `/init` 为只读扫描 + 生成配置，不受 Hooks 约束
-- `/deliver` 和 `/report` 为独立工具命令，不涉及模式切换
+- `/performance`、`/deliver` 和 `/report` 为独立工具命令，不涉及编码模式切换；其中 `/performance` 默认只读，仅在用户要求保存报告时写入 `docs/performance/`
 
 ---
 

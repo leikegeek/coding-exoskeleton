@@ -1,0 +1,39 @@
+---
+description: Java 后端命名规范
+globs: "*/src/main/java/**/*.java"
+alwaysApply: false
+---
+
+# Java Naming
+
+- 仅当 `AGENTS.md` 的 `techStack` 为 `cola-java` 时使用本规则；其它项目跳过。
+
+## Executor / Service（application 层）
+- 查询执行器命名为 `XxxQryExe`，放在 `executor/模块名/qry/` 下。
+- 命令执行器命名为 `XxxCmdExe`，放在 `executor/模块名/cmd/` 下。
+- 服务编排命名为 `XxxService`，放在 `service/模块名/` 下。
+
+## Gateway / Repository / DataObject（infrastructure 层）
+- Gateway 接口命名为 `IXxxGateway`，实现类命名为 `XxxGateway`，均在 `infrastructure` 层。
+- MyBatis Mapper 接口命名为 `IXxxRepository`，放在 `repository/模块名/` 下。
+- 数据库实体命名为 `XxxDO`，放在 `dataobject/模块名/` 下。
+- MapStruct 转换器命名为 `XxxConvertor`。
+
+## Controller（adapter 层）
+- 对外 API Controller 使用 `XxxApiController`（URL 路径 `/api/`）。
+- 前端页面 Controller 使用 `XxxController`（URL 路径 `/web/`）。
+- 内部服务入口使用 `XxxCenterController`（URL 路径 `/center/`）。
+
+## 其他（adapter 层）
+- MQ 消费者命名为 `XxxConsumer`，放在 `consumer/模块名/` 下。
+- 定时任务命名为 `XxxScheduler`，放在 `scheduler/模块名/` 下。
+
+## 通用
+- 新增类名先匹配现有职责和目录，再决定后缀，避免出现 `Manager`、`Helper`、`UtilService` 这类模糊命名。
+
+## JavaDoc 作者注释
+
+- 若项目已有新类 JavaDoc 作者注释风格，新增顶层 Java 类时可以生成 `@author`。
+- 作者名只允许从全局用户配置 `~/.exoskeleton/user-config.json` 的 `author.javaDocAuthor` / `author.name` 读取；可兼容读取 legacy `~/.cursor/coding-exoskeleton/user-config.json`，仍缺失时可回退到 `git config --global user.name`。
+- 修改已有类时，不新增、不改写已有 `@author`。
+- 不得将作者配置写入项目仓库文件或共享项目画像。

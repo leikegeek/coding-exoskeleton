@@ -5,21 +5,21 @@
 ## 1. 新增范围
 
 以 `{profile-id}` 为例（如 `spring-boot`、`nextjs`、`go-service`）：
-
-- `skills/{profile-id}/...`
-- `rules/{profile-id}/...`
-- 如该技术栈属于前端或后端，复用 `frontend-common` 或 `backend-common`，不要复制已有通用规则
-- `/init` 识别与映射逻辑
+	
+- `src/skills/{profile-id}/...`
+- `src/rules/{profile-id}/...`
+- 如该技术栈属于前端或后端，复用 `src/skills/frontend-common/` 或 `src/skills/backend-common/`，不要复制已有通用规则
+- `/init` 识别与映射逻辑（`src/skills/shared/project-profiling/SKILL.md`）
 - `docs/plugin-core-workflow.md` 的 Profile 表
 
 ## 2. 最小目录模板
 
 ```text
-skills/{profile-id}/
+src/skills/{profile-id}/
   ├── architecture/SKILL.md
   └── naming/SKILL.md
 
-rules/{profile-id}/
+src/rules/{profile-id}/
   ├── architecture.mdc
   ├── naming.mdc
   └── performance.mdc

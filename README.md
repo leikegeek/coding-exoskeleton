@@ -1,6 +1,6 @@
 # Exoskeleton — AI 编程治理框架
 
-Exoskeleton 是面向企业级研发场景的 Cursor 插件框架，目标是把 AI 协作从"能完成任务"升级为"可治理、可演进、可稳定交付"。
+Exoskeleton 是面向企业级研发场景的 AI 编程治理框架，V2 支持 Cursor、Claude Code 与 Codex 三平台交付，目标是把 AI 协作从"能完成任务"升级为"可治理、可演进、可稳定交付"。
 
 ## 核心理念
 
@@ -38,6 +38,7 @@ Exoskeleton 通过治理闭环把"用起来"变成"越用越稳"。
 | 专职子代理编排 | 关键节点自动委派，上下文收窄防漂移 | `architect`、`unit-test-reviewer`、`tdd-guide`、`audit-reviewer` 等 |
 | 实施进度追踪 | 技术方案文档中自动维护进度，跨会话断点续做 | `coding` skill |
 | 独立 PR/MR 审计 | 直接审计 GitLab MR、commit 或本地 diff；优先使用 Git 可获取的变更和完整代码，与 `/code` B3 共用统一审计内核 | `/audit`、`audit-context-intake`、`audit-reviewer` |
+| 独立性能分析 | 对项目、模块、场景或本地 diff 执行只读性能分析，复用 `performance-analysis` 并输出标准性能分析报告 | `/performance`、`performance-analysis` |
 | 增量变更记录 | 编码时同步维护文档，审查时定稿 | `coding` skill |
 | 模式隔离与命令拦截 | 设计/编码模式 + 危险命令 deny | Hooks |
 | Profile 规则激活 | 根据 `AGENTS.md.techStack` 激活 `shared + family-common + profile` 规则，避免跨技术栈误套规范 | `/init`、`project-profiling`、`verification-loop` |
@@ -46,13 +47,14 @@ Exoskeleton 通过治理闭环把"用起来"变成"越用越稳"。
 
 ```mermaid
 flowchart TD
-    entry["/init / /start / /code / /audit"] --> profile["生成或读取 AGENTS.md"]
+    entry["/init / /start / /code / /audit / /performance"] --> profile["生成或读取 AGENTS.md"]
     profile --> techStack["解析 techStack"]
     techStack --> activation["激活规则与技能：shared + family-common + profile"]
     activation --> pipeline{"进入哪条流水线？"}
     pipeline -->|/start| design["流水线 A：需求 → 技术方案 → 用户确认"]
     pipeline -->|/code 或继续编码| coding["流水线 B：方案 → 编码 → 验证 → 交付"]
     pipeline -->|/audit| auditInput["独立审计：PR/MR、commit 或本地 diff"]
+    pipeline -->|/performance| perfInput["独立性能分析：项目、模块、场景或本地 diff"]
     coding --> verify["V1-V5 验证循环"]
     verify --> v2["V2 测试: testing + unit-test-reviewer"]
     v2 --> auditContext["audit-context-intake 归一化 AuditContext"]
@@ -61,12 +63,25 @@ flowchart TD
     v4 --> v5["/code: V5 仅检查当前激活规则，不跨技术栈套用"]
     v5 --> delivery["交付三份正式文档"]
     v4 --> auditReport["/audit: 输出独立审计报告"]
+    perfInput --> perfReport["/performance: 输出标准性能分析报告"]
 ```
 
 当前内置 Profile：
 - `cola-java`：`shared + backend-common + cola-java`
 - `frontend-vue3`：`shared + frontend-common + frontend-vue3`
 - `frontend-react-umi`：`shared + frontend-common + frontend-react-umi`
+
+## 平台安装入口
+
+Exoskeleton V2 将核心资产统一维护在 `src/`，按平台生成安装产物：
+
+| 平台 | 安装入口 | 说明 |
+|------|----------|------|
+| Cursor | `platforms/cursor/install.ps1` | 安装到 Cursor 本地插件目录，并写入用户级 hooks 配置 |
+| Claude Code | `platforms/claude/install-claude.ps1` | 安装到目标项目 `.claude/`，使用项目级 settings.json 配置 hooks |
+| Codex | `platforms/codex/install-codex.ps1` | 安装到目标项目 `.agents/`、`.codex/` 和 repo-local plugin marketplace |
+
+Claude Code 使用说明见 [docs/claude-code-guide.md](docs/claude-code-guide.md)，Codex 使用说明见 [docs/codex-user-guide.md](docs/codex-user-guide.md)，平台架构说明见 [docs/codex-platform-architecture.md](docs/codex-platform-architecture.md)。
 
 ## 持续迭代闭环
 
@@ -80,10 +95,16 @@ flowchart LR
 ```
 **欢迎大家结合自己的项目和使用经验提出宝贵意见，更欢迎大家分享各种编程语言的skill&rule来丰富Exoskeleton生态**
 
+**感谢一下同学提出的宝贵意见和建议,欢迎大家继续反馈，一同打造更懂我们的harness基础设施**
+> @liuxuesen  @guoyuxing
+
 ## 文档入口（先看这里）
 
 > **用户手册（安装与使用入口）**  
 > [docs/user-guide.md](docs/user-guide.md)
+
+> **Codex 用户指南**  
+> [docs/codex-user-guide.md](docs/codex-user-guide.md)
 
 > **核心原理（架构与流程解释）**  
 > [docs/plugin-core-workflow.md](docs/plugin-core-workflow.md)
@@ -103,4 +124,4 @@ flowchart LR
 
 ## 版本
 
-当前版本：1.0.3
+当前版本：2.0.0

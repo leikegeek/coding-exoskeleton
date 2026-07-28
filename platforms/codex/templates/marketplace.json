@@ -1,0 +1,21 @@
+{
+  "name": "coding-local",
+  "plugins": [
+    {
+      "name": "coding-exoskeleton",
+      "source": {
+        "source": "local",
+        "path": "./plugins/coding-exoskeleton"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity",
+      "interface": {
+        "displayName": "Coding Exoskeleton",
+        "description": "Governed coding workflows, review loops, project skills, and hook-based guardrails for Codex."
+      }
+    }
+  ]
+}

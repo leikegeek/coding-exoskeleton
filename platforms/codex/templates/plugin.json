@@ -1,0 +1,6 @@
+{
+  "name": "coding-exoskeleton",
+  "version": "2.1.0",
+  "description": "Enterprise coding-agent governance workflows for Codex, packaged as skills with optional project hooks.",
+  "skills": "./skills/"
+}

@@ -13,14 +13,14 @@
 ### 处理步骤
 
 1. 确认当前目录是业务项目，而不是插件仓库目录。
-2. 检查 `.cursor/harness-config.json` 是否存在、`pathWhitelist` 是否覆盖当前目标路径。
+2. 检查 `.exoskeleton/harness-config.json` 是否存在、`pathWhitelist` 是否覆盖当前目标路径；若历史项目仍使用 `.cursor/`，则以兼容方式读取。
 3. 检查 `~/.cursor/hooks.json` 是否存在且指向 `plugins/local/coding-exoskeleton/hooks/*.ps1`；缺失或损坏时重跑插件安装器修复：
 
 ```powershell
 & "$env:USERPROFILE\.cursor\plugins\local\coding-exoskeleton\install.ps1"
 ```
 
-4. 确认业务项目内没有残留的 `.cursor/hooks.json`（本项目已全面切换为全局 hooks，发现残留应直接删除）。
+4. 确认业务项目内没有残留的 `.cursor/hooks.json`（本项目已全面切换为全局 hooks，发现残留应直接删除）；若存在 `.exoskeleton/hooks.json`，也应确认其内容与当前安装器输出一致。
 5. 重启 Cursor 后重试核心命令（如 `/start` 或 `/code`）。
 6. 仍失败时，查看审计日志定位拒绝原因：
    - `.cursor/hooks/logs/harness-events.jsonl`
@@ -37,7 +37,7 @@
 1. 执行 `/init` 重新扫描并确认 Profile。
 2. 若已有画像，优先选择“增量更新”；结构变化较大时选择“覆盖重建”。
 3. 检查 `AGENTS.md` 的 `techStack` 与实际是否一致。
-4. 校验 `.cursor/harness-config.json` 中 `techStack` 是否同步更新。
+4. 校验 `.exoskeleton/harness-config.json` 中 `techStack` 是否同步更新；历史项目如仍保留 `.cursor/harness-config.json`，确认已由安装器兼容读取。
 
 ## 3. 升级后行为异常
 
@@ -71,11 +71,11 @@ git pull --ff-only
 1. 检查全局用户配置是否存在：
 
 ```powershell
-Test-Path "$env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json"
+Test-Path "$env:USERPROFILE\.exoskeleton\user-config.json"
 ```
 
-2. 如不存在，执行 `/init`。如果项目已有 `AGENTS.md`，请选择「仅配置个人作者信息」；选择「跳过」不会生成作者配置。
-3. 确认业务项目中没有提交个人配置：作者配置不得出现在 `AGENTS.md`、`.cursor/harness-config.json`、技术方案或交付文档中。
+2. 如不存在，执行 `/init`。如果项目已有 `AGENTS.md`，请选择「仅配置个人作者信息」；选择「跳过」不会生成作者配置。历史路径 `$env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json` 仅作为兼容读取路径。
+3. 确认业务项目中没有提交个人配置：作者配置不得出现在 `AGENTS.md`、`.exoskeleton/harness-config.json`、技术方案或交付文档中。
 4. 若全局配置缺失，编码阶段可回退读取 `git config --global user.name`；仍为空时不生成作者注释。
 5. 已有类的 `@author` 不应被自动新增或改写，如发现误改，按本次变更回退对应注释。
 
@@ -133,7 +133,7 @@ Test-Path "$env:USERPROFILE\.cursor\coding-exoskeleton\user-config.json"
 
 1. 确认当前任务契约字段完整（SV-ID、模式、边界、验收标准）。
 2. 明确发起模式切换并写明原因与写入边界。
-3. 检查 `.cursor/harness-state.json` 是否与预期一致。
+3. 检查状态文件是否与预期一致（优先 `.exoskeleton/harness-state.json`，兼容 `.cursor/harness-state.json`）。
 
 ## 9. 恢复后验收
 
